@@ -79,9 +79,10 @@ function tabsCurso() {
   (CUR.modulos || []).forEach(m => { if (MODULOS[m]) t.push([m, MODULOS[m].nombre]); });
   if (CARDS.length) t.push(['tarjetas', 'Tarjetas']);
   if ((CUR.glosario || []).length) t.push(['glosario', 'Glosario']);
+  if ((CUR.referencia || []).length) t.push(['referencia', CUR.referenciaNombre || 'Referencia']);
   return t;
 }
-function render() { renderHeader(); $('#view').innerHTML = VIEWS[cur](); if (typeof enlazarGlosario === 'function') enlazarGlosario($('#view')); }
+function render() { renderHeader(); $('#view').classList.toggle('ancho', cur === 'ejercicios' && !!EJ.sel && !!(curEx() || {}).files); $('#view').innerHTML = VIEWS[cur](); if (typeof enlazarGlosario === 'function') enlazarGlosario($('#view')); }
 function route() { let h = (location.hash || '#hoy').slice(1); if (h === 'papel') h = 'ejercicios'; const next = tabsCurso().some(x => x[0] === h) && VIEWS[h] ? h : 'hoy'; if (next !== cur) { stopTimer(); window.scrollTo(0, 0); } cur = next; render(); }
 
 /* ===== HOY ===== */
@@ -166,10 +167,29 @@ VIEWS.ejercicios = () => {
   }
   const ex = curEx(), R = earned(), files = ex.files || [], f = files[EJ.file] || null;
   const canReveal = !ex.fields || ex.rubric;
-  return `<div class="stack"><div class="row spread"><button class="btn sm" data-act="exBack">← Ejercicios</button><span class="chip">${TNAME[ex.topic] || ''}</span></div>
+  return `<div class="stack"><div class="row spread"><div class="row"><button class="btn sm" data-act="exBack">← Ejercicios</button>${(CUR.referencia || []).length ? `<button class="btn sm" data-act="refAbrir">${esc(CUR.referenciaNombre || 'Referencia')}</button>` : ''}</div><span class="chip">${TNAME[ex.topic] || ''}</span></div>
   <div><div class="eyebrow">${esc(GROUPS.find(g => g[0] === ex.group)[1])} · ${esc(ex.n)}</div><h1>${esc(ex.title)}</h1><div class="muted small">${exPts(ex)} ${ex.rubric ? 'pts' : 'respuestas'} · tiempo sugerido ${ex.min} min</div></div>
+  ${ex.files ? `<div class="ws"><div class="ws-izq">
   <div class="card glos"><h3>Enunciado</h3>${ex.statement}</div>
   ${conceptosHtml(ex)}
+  ${patronesHtml(ex)}
+  ${ex.diagram ? `<div class="diag-wrap">${staticDiagram(ex.diagram)}</div>` : ''}
+  ${ex.files && !EJ.revealed ? guiaHtml(ex) : ''}
+  </div><div class="ws-der">
+  ${files.length ? `<div class="row"><span class="eyebrow">Dónde</span><div class="seg" role="group"><button class="${LUGAR === 'papel' ? 'on' : ''}" data-act="lugar" data-v="papel">En papel</button><button class="${LUGAR === 'pantalla' ? 'on' : ''}" data-act="lugar" data-v="pantalla">En pantalla + compilar</button></div><span class="muted small">${LUGAR === 'papel' ? 'como en la evaluación' : 'para comprobar que funciona'}</span></div>` : ''}
+  ${files.length ? `<div class="row"><span class="eyebrow">Ayuda</span><div class="seg" role="group">${Object.entries(MODES).map(([k, n]) => `<button class="${EJ.mode === k ? 'on' : ''}" data-act="exMode" data-v="${k}">${n}</button>`).join('')}</div><span class="muted small">menos ayuda = más XP</span></div>
+   ${LUGAR === 'pantalla' ? editorHtml(ex) : `${files.length > 1 ? `<div class="tabsf">${files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}</button>`).join('')}</div>` : ''}
+   ${EJ.mode === 'ninguno' ? `<div class="callout">Escribe en tu hoja ${files.length > 1 ? 'los archivos ' + files.map(x => '<code>' + esc(x.name) + '</code>').join(', ') : '<code>' + esc(f.name) + '</code>'} desde cero, con los <code>#include</code>. Es lo más cercano a programar sin esqueleto.</div>`
+     : `<pre class="code">${highlight(renderCode(f.code, EJ.mode, langOf(ex)), langOf(ex))}</pre><div class="muted small">${countTodos(f.code)} bloques TODO${EJ.mode === 'alto' ? ' · ' + countKeys(f.code) + ' líneas ocultas' : ''}</div>`}`}` : ''}
+  ${ex.fields ? fieldsHtml(ex) : ''}
+  <div class="card row spread"><div><div class="eyebrow">Cronómetro</div><div class="timer" id="timer">${fmtT(elapsed())}</div></div>
+   <div class="row"><button class="btn" data-act="exTimer">${EJ.run ? 'Pausar' : 'Iniciar'}</button><button class="btn" data-act="exHint" ${EJ.hints >= (ex.hints || []).length || EJ.revealed ? 'disabled' : ''}>Pista (${EJ.hints}/${(ex.hints || []).length})</button></div></div>
+  ${EJ.hints ? `<div class="callout warn glos"><ol class="clean" style="margin:0">${ex.hints.slice(0, EJ.hints).map(h => `<li>${esc(h)}</li>`).join('')}</ol></div>` : ''}
+  ${!EJ.revealed ? (canReveal ? `<div class="callout"><b>Antes de seguir:</b> escribe tu solución en una hoja. Si miras primero, solo estás leyendo, no practicando.</div><div><button class="btn primary" data-act="exReveal">Ya escribí mi solución: ver y corregir</button></div>` : '') : solutionHtml(ex, R)}
+  </div></div>` : `
+  <div class="card glos"><h3>Enunciado</h3>${ex.statement}</div>
+  ${conceptosHtml(ex)}
+  ${patronesHtml(ex)}
   ${ex.diagram ? `<div class="diag-wrap">${staticDiagram(ex.diagram)}</div>` : ''}
   ${ex.files && !EJ.revealed ? guiaHtml(ex) : ''}
   ${files.length ? `<div class="row"><span class="eyebrow">Dónde</span><div class="seg" role="group"><button class="${LUGAR === 'papel' ? 'on' : ''}" data-act="lugar" data-v="papel">En papel</button><button class="${LUGAR === 'pantalla' ? 'on' : ''}" data-act="lugar" data-v="pantalla">En pantalla + compilar</button></div><span class="muted small">${LUGAR === 'papel' ? 'como en la evaluación' : 'para comprobar que funciona'}</span></div>` : ''}
@@ -181,7 +201,8 @@ VIEWS.ejercicios = () => {
   <div class="card row spread"><div><div class="eyebrow">Cronómetro</div><div class="timer" id="timer">${fmtT(elapsed())}</div></div>
    <div class="row"><button class="btn" data-act="exTimer">${EJ.run ? 'Pausar' : 'Iniciar'}</button><button class="btn" data-act="exHint" ${EJ.hints >= (ex.hints || []).length || EJ.revealed ? 'disabled' : ''}>Pista (${EJ.hints}/${(ex.hints || []).length})</button></div></div>
   ${EJ.hints ? `<div class="callout warn glos"><ol class="clean" style="margin:0">${ex.hints.slice(0, EJ.hints).map(h => `<li>${esc(h)}</li>`).join('')}</ol></div>` : ''}
-  ${!EJ.revealed ? (canReveal ? `<div class="callout"><b>Antes de seguir:</b> escribe tu solución en una hoja. Si miras primero, solo estás leyendo, no practicando.</div><div><button class="btn primary" data-act="exReveal">Ya escribí mi solución: ver y corregir</button></div>` : '') : solutionHtml(ex, R)}</div>`;
+  ${!EJ.revealed ? (canReveal ? `<div class="callout"><b>Antes de seguir:</b> escribe tu solución en una hoja. Si miras primero, solo estás leyendo, no practicando.</div><div><button class="btn primary" data-act="exReveal">Ya escribí mi solución: ver y corregir</button></div>` : '') : solutionHtml(ex, R)}
+  `}</div>`;
 };
 const LANG_NAME = { c: 'C', cpp: 'C++', java: 'Java', js: 'JavaScript', python: 'Python', sql: 'SQL' };
 function comandoPara(ex, f) {

@@ -11,8 +11,8 @@ const fallo = (curso, msg) => errores.push(`[${curso}] ${msg}`);
 
 function cargarCurso(dir) {
   const base = path.join(CURSOS_DIR, dir);
-  const curso = {}, ejercicios = [], tarjetas = [], glosario = [], claves = {};
-  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario, claves }, { filename: f });
+  const curso = {}, ejercicios = [], tarjetas = [], glosario = [], claves = {}, referencia = [], usaPatrones = {};
+  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario, claves, referencia, usaPatrones }, { filename: f });
   if (!fs.existsSync(path.join(base, 'curso.js'))) { fallo(dir, 'falta curso.js'); return null; }
   correr(path.join(base, 'curso.js'));
   const ls = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.js')).sort().map(f => path.join(d, f)) : [];
@@ -20,6 +20,18 @@ function cargarCurso(dir) {
   if (fs.existsSync(path.join(base, 'tarjetas.js'))) correr(path.join(base, 'tarjetas.js'));
   if (fs.existsSync(path.join(base, 'glosario.js'))) correr(path.join(base, 'glosario.js'));
   if (fs.existsSync(path.join(base, 'claves.js'))) correr(path.join(base, 'claves.js'));
+  if (fs.existsSync(path.join(base, 'referencia.js'))) correr(path.join(base, 'referencia.js'));
+  const rids = new Set();
+  referencia.forEach(r => {
+    if (!r.id || !r.titulo || !(r.texto || r.codigo)) fallo(id, `referencia ${r.id || '?'}: necesita id, titulo y texto o codigo`);
+    if (rids.has(r.id)) fallo(id, `referencia ${r.id}: id repetido`); rids.add(r.id);
+  });
+  Object.entries(usaPatrones).forEach(([eid, lista]) => {
+    const e = ejercicios.find(x => x.id === eid);
+    if (!e) { fallo(id, `usaPatrones: no existe el ejercicio ${eid}`); return; }
+    lista.forEach(r => { if (!rids.has(r)) fallo(id, `usaPatrones (${eid}): no existe la entrada de referencia ${r}`); });
+    e.patrones = lista;
+  });
   const id = curso.id || dir;
   /* validación: mensajes claros para quien agregue contenido */
   ['nombre'].forEach(k => { if (!curso[k]) fallo(id, `curso.js: falta "${k}"`); });
@@ -89,7 +101,7 @@ function cargarCurso(dir) {
   });
   glosario.forEach(g => (g.ver || []).forEach(v => { if (!gids.has(v)) fallo(id, `glosario ${g.id}: "ver" apunta a ${v}, que no existe`); }));
   const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');
-  return { config: { ...curso, id, ejercicios, tarjetas, glosario }, modulos };
+  return { config: { ...curso, id, ejercicios, tarjetas, glosario, referencia }, modulos };
 }
 
 const dirs = fs.readdirSync(CURSOS_DIR).filter(d => fs.statSync(path.join(CURSOS_DIR, d)).isDirectory() && (todos || !d.startsWith('_'))).sort();
@@ -101,7 +113,7 @@ const read = f => fs.readFileSync(path.join(APP, f), 'utf8');
 const sinExports = js => js.replace(/if \(typeof module !== 'undefined'\) module\.exports[^\n]*/g, '');
 const js = [
   'const CURSOS = ' + JSON.stringify(cursos.map(c => c.config)) + ';',
-  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'), read('guia.js'),
+  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'), read('guia.js'), read('referencia.js'),
   ...cursos.map(c => c.modulos),
   'activarCurso(S.curso); route(); syncPull();'
 ].join('\n');

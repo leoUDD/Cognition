@@ -115,6 +115,15 @@ Object.assign(pruebas, {
 - **Cuidado con los alias genéricos:** una palabra común ("cliente", "concurrente") se marcará donde no corresponde. Prefiere frases ("servidor concurrente", "eventos concurrentes").
 - Las definiciones deben bastarle a alguien que **no recuerda** el concepto: qué es, para qué sirve y, si aplica, una línea de código.
 
+## Referencia del lenguaje (`referencia.js`, opcional)
+
+`referencia.push({ id, grupo, titulo, cuando, texto, codigo })` crea la pestaña de referencia (con el nombre de `curso.referenciaNombre`, por ejemplo "Sintaxis de C"). También se abre como **panel lateral** dentro de cada ejercicio, sin perder lo escrito en el editor.
+
+- **Sintaxis básica:** lo que se olvida (formatos de printf, punteros, strings…).
+- **Patrones del ramo:** el esqueleto comentado de cada tipo de programa, con `cuando` (en qué ejercicios se usa). Es la mejor ayuda para empezar desde cero.
+- Al final de `referencia.js`, `Object.assign(usaPatrones, { EJ1: ['id-patron', …] })` indica qué patrones usa cada ejercicio. Aparecen como "Patrones que usa" y abren el panel en ese esqueleto.
+- Verifica que cada fragmento compile.
+
 ## Tarjetas (`tarjetas.js`)
 
 `tarjetas.push({ id, t: '<id de tema>', q: '<pregunta HTML>', a: '<respuesta HTML>' })`.

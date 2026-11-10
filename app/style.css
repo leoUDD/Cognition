@@ -171,3 +171,25 @@ details.conceptos summary{cursor:pointer}
 
 .rate .btn.rec{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .autocal{border-left:4px solid var(--line)}.autocal.good{border-left-color:var(--good)}.autocal.hard{border-left-color:var(--warn)}.autocal.again{border-left-color:var(--bad)}
+
+/* Ejercicio en dos columnas: enunciado fijo a la izquierda, código a la derecha */
+main.ancho{max-width:1440px}
+.ws{display:flex;flex-direction:column;gap:16px}
+.ws-izq,.ws-der{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(min-width:1100px){
+  .ws{display:grid;grid-template-columns:minmax(360px,.9fr) minmax(0,1.1fr);align-items:start}
+  .ws-izq{position:sticky;top:112px;max-height:calc(100vh - 128px);overflow:auto;padding-right:4px}
+}
+/* Referencia */
+.ref{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:120px}
+.ref h3{margin:0}.ref p{margin:0}.ref-cuando{font-size:.92rem;background:var(--accent-soft);border-radius:8px;padding:6px 10px}
+.ref.compacta{padding:12px}.ref.compacta pre.code{font-size:12.3px}
+h2.ref-g{margin:12px 0 0}
+#refpanel{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);z-index:55;background:var(--paper);border-left:1px solid var(--line);box-shadow:-12px 0 30px -12px rgba(0,0,0,.35);display:none;flex-direction:column}
+#refpanel.on{display:flex}
+#refpanel .rp-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card)}
+#refpanel input{margin:10px 14px}
+#refpanel .rp-body{overflow:auto;padding:0 14px 30px;display:flex;flex-direction:column;gap:14px}
+
+.chipbtn.pat{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.ref.destacada{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}

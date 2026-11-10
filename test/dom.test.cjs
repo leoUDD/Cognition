@@ -117,6 +117,23 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   click('.autocal [data-act=cRate].primary');
   ok(w.eval('CV.queue[CV.queue.length - 1]') === 'c05' && w.eval("P.cards.c05.box") === 0, 'con nota baja la tarjeta vuelve en la misma sesión');
   click('[data-act=cShow]'); ok(!d.querySelector('.autocal') && d.querySelector('.rate'), 'sin respuesta escrita: calificación manual');
+  /* dos columnas y referencia de C */
+  w.eval("cambiarCurso('redes')"); await go('ejercicios'); if (d.querySelector('[data-act=exBack]')) click('[data-act=exBack]');
+  click('[data-act=openEx][data-id="C01A"]');
+  ok(d.querySelector('#view').classList.contains('ancho') && d.querySelector('.ws-izq .card.glos') && /Enunciado/.test(d.querySelector('.ws-izq').textContent), 'enunciado en la columna izquierda');
+  ok(d.querySelector('.ws-der pre.code') || d.querySelector('.ws-der #ed'), 'código en la columna derecha');
+  ok(d.querySelectorAll('.patrones .chipbtn').length === 3, 'C01A muestra sus 3 patrones');
+  click('.patrones .chipbtn'); ok(d.querySelector('#refpanel.on #ref-p-servidor.destacada'), 'tocar un patrón abre su esqueleto destacado');
+  d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' }));
+  click('.row [data-act=refAbrir]');
+  ok(d.querySelector('#refpanel.on') && d.querySelectorAll('#refpanel .ref').length >= 20, 'panel de sintaxis con ' + d.querySelectorAll('#refpanel .ref').length + ' entradas');
+  const rq = d.querySelector('#refpq'); rq.value = 'strcmp'; rq.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const nres = d.querySelectorAll('#refpanel .ref').length; ok(nres >= 1 && nres < 6, 'la búsqueda del panel filtra (' + nres + ')');
+  ok(d.querySelector('.ws-izq'), 'el ejercicio sigue abierto detrás del panel');
+  d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' })); ok(!d.querySelector('#refpanel.on'), 'Escape cierra el panel');
+  w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="L01"]');
+  ok(!d.querySelector('.ws') && !d.querySelector('#view').classList.contains('ancho'), 'ejercicio sin código: una columna');
+  await go('referencia'); ok(/Patrones del curso/.test(d.querySelector('#view').textContent) && d.querySelectorAll('#view .ref').length >= 20, 'pestaña Sintaxis de C');
   /* sincronización entre dos dispositivos */
   await go('hoy'); click('[data-act=syNew]'); await sleep(80);
   const code = w.eval('SY.code'); ok(/^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$/.test(code), 'codigo');

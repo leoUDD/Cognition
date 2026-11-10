@@ -5,6 +5,7 @@ Object.assign(curso, {
   lema: 'Escribir código <span>sin red de seguridad</span>',
   intro: 'El control y el certamen son en papel. Aquí practicas justo eso: recuperar el patrón de memoria, escribirlo a mano y corregirte con una rúbrica. Lo que fallas vuelve en pocos días.',
   lenguaje: 'c',
+  referenciaNombre: 'Sintaxis de C',
   comando: 'gcc -Wall -o {base} {archivo}',
   solucionesProbadas: true,
   textoEjercicios: 'Todos los ejercicios de tus guías, resueltos y explicados. Cada solución en C fue compilada y probada. Intenta primero en papel; la solución aparece solo cuando la pides.',

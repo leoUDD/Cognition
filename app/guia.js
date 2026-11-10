@@ -46,6 +46,12 @@ function conceptosHtml(ex) {
   return `<details class="card conceptos" ${EJ.verConceptos ? 'open' : ''}><summary><b>Conceptos que usa este ejercicio</b> <span class="muted small">(${ids.length}) · tócalos para repasarlos antes de empezar</span></summary>
   <div class="chips">${ids.map(id => `<button class="chipbtn" data-act="glos" data-id="${id}">${esc(glosTerm(id).t)}</button>`).join('')}</div></details>`;
 }
+function patronesHtml(ex) {
+  const refs = (ex.patrones || []).map(id => (CUR.referencia || []).find(r => r.id === id)).filter(Boolean);
+  if (!refs.length) return '';
+  return `<div class="card patrones"><b>Patrones que usa</b> <span class="muted small">· parte desde su esqueleto</span>
+  <div class="chips">${refs.map(r => `<button class="chipbtn pat" data-act="refAbrir" data-id="${r.id}">${esc(r.titulo)}</button>`).join('')}</div></div>`;
+}
 function glosFicha(g, conBotones) {
   return `<div class="gf"><div class="gf-t">${esc(g.t)}</div><div class="gf-d">${g.def}</div>
   ${g.ej ? `<pre class="code gf-ej">${highlight(g.ej, CUR.lenguaje)}</pre>` : ''}
@@ -92,7 +98,7 @@ function guiaHtml(ex) {
     <li><b>Si hay un protocolo, haz una tabla</b> en tu hoja: mensaje que llega → qué respondes. Casi todo el código sale de esa tabla.</li>
     <li><b>Mira los TODO como piezas sueltas.</b> No intentes resolver todo a la vez: cada TODO tiene una sola responsabilidad (abajo están en orden).</li>
     <li><b>Escribe primero en español</b>, como comentarios: "recibir", "si es X, responder Y". Recién después tradúcelo a C, línea por línea.</li>
-    <li><b>Reconoce el patrón:</b> casi todo es una variación de servidor TCP (socket → bind → listen → accept → fork), cliente TCP (socket → connect → send/recv), pipe + fork, o las reglas de Lamport. Si un concepto no te suena, revísalo en "Conceptos que usa este ejercicio".</li>
+    <li><b>Reconoce el patrón:</b> casi todo es una variación de servidor TCP (socket → bind → listen → accept → fork), cliente TCP (socket → connect → send/recv), pipe + fork, o las reglas de Lamport. Mira "Patrones que usa" y abre su esqueleto: tu código parte de ahí. Si un concepto no te suena, revísalo en "Conceptos que usa este ejercicio".</li>
    </ol></details>`;
   return `<section class="card stack guia" style="gap:10px"><div class="row spread"><h3 style="margin:0">Guía paso a paso</h3><button class="btn sm" data-act="guiaCerrar">Ocultar guía</button></div>
   <p class="small muted" style="margin:0">Ve TODO por TODO. Primero responde la pregunta en tu cabeza o en la hoja; abre los pasos solo si sigues en blanco, y las líneas de código como último recurso (cada línea revelada resta un poco de XP).</p>
