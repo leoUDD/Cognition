@@ -45,6 +45,32 @@ function cargarCurso(dir) {
     if (tids.has(t.id)) fallo(id, `tarjeta ${t.id}: id repetido`); tids.add(t.id);
     if (!temas.has(t.t)) fallo(id, `tarjeta ${t.id}: el tema "${t.t}" no está en curso.temas`);
   });
+  /* pruebas para el ejecutor local (opcional): pruebas.js + carpeta pruebas/ */
+  const pjs = path.join(base, 'pruebas.js');
+  if (fs.existsSync(pjs)) {
+    const pruebas = {};
+    vm.runInNewContext(fs.readFileSync(pjs, 'utf8'), { pruebas, ejercicios }, { filename: pjs });
+    for (const [eid, plan] of Object.entries(pruebas)) {
+      const e = ejercicios.find(x => x.id === eid);
+      if (!e) { fallo(id, `pruebas.js: no existe el ejercicio ${eid}`); continue; }
+      if (!e.files) { fallo(id, `pruebas.js: ${eid} no tiene archivos de código`); continue; }
+      const nombres = new Set(e.files.map(f => f.name)), archivos = {};
+      const usar = ref => {
+        if (ref.startsWith('prueba/')) {
+          const p = path.join(base, 'pruebas', ref.slice(7));
+          if (!fs.existsSync(p)) fallo(id, `pruebas.js (${eid}): no existe pruebas/${ref.slice(7)}`); else archivos[ref] = fs.readFileSync(p, 'utf8');
+        } else if (ref.startsWith('ref/')) {
+          /* ref/<archivo> = solución de este ejercicio; ref/<ID>/<archivo> = solución de otro ejercicio */
+          const partes = ref.slice(4).split('/'), otro = partes.length === 2 ? ejercicios.find(x => x.id === partes[0]) : e;
+          const f = otro && otro.files && otro.files.find(x => x.name === partes[partes.length - 1]);
+          if (!f) fallo(id, `pruebas.js (${eid}): ${ref} no corresponde a ninguna solución`); else archivos[ref] = f.code;
+        } else if (!nombres.has(ref)) fallo(id, `pruebas.js (${eid}): ${ref} no es un archivo del ejercicio`);
+      };
+      (plan.compilar || []).forEach(c => c.src.forEach(usar));
+      (plan.pasos || []).forEach(p => { if (p.archivo) usar(p.archivo); });
+      e.pruebas = { compilar: plan.compilar || [], pasos: plan.pasos || [], archivos };
+    }
+  }
   const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');
   return { config: { ...curso, id, ejercicios, tarjetas }, modulos };
 }
@@ -58,7 +84,7 @@ const read = f => fs.readFileSync(path.join(APP, f), 'utf8');
 const sinExports = js => js.replace(/if \(typeof module !== 'undefined'\) module\.exports[^\n]*/g, '');
 const js = [
   'const CURSOS = ' + JSON.stringify(cursos.map(c => c.config)) + ';',
-  sinExports(read('core.js')), read('sync.js'), read('ui.js'),
+  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'),
   ...cursos.map(c => c.modulos),
   'activarCurso(S.curso); route(); syncPull();'
 ].join('\n');

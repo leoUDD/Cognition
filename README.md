@@ -6,6 +6,7 @@ Un motor genérico donde **cada ramo es una carpeta de contenido**.
 - **Hoy:** plan del día, meta de XP, racha, cuenta regresiva a tus evaluaciones y mapa de dominio por tema.
 - **Ejercicios:** enunciado, tres niveles de ayuda (líneas clave ocultas → solo los TODO → sin esqueleto), cronómetro, pistas, solución explicada y autoevaluación con rúbrica o autocorrección.
 - **Tarjetas:** teoría con repetición espaciada.
+- **En pantalla + compilar:** editor con números de línea; con el ejecutor local en WSL compila con gcc y corre las pruebas del ejercicio (tu servidor contra un cliente de prueba, tu cliente contra el servidor de referencia, salida esperada…).
 - **Módulos:** pestañas propias de un ramo (por ejemplo, Relojes y Drills en Redes).
 - **Sincronización:** el mismo progreso en el PC y el celular, con un código.
 
@@ -38,7 +39,7 @@ test/                 ← pruebas (jsdom + API simulada)
 
 ```bash
 npm run construir     # regenera index.html después de cambiar contenido
-npm install && npm run probar   # pruebas (opcional)
+npm install && npm run probar   # pruebas (opcional; ver CLAUDE.md para las del ejecutor)
 ```
 Luego `git commit` y `git push`: Vercel publica solo.
 
@@ -51,6 +52,25 @@ Luego `git commit` y `git push`: Vercel publica solo.
 3. Abre tu URL → *Hoy → Sincronización → Crear código*. En el celular, ingresa ese código.
 
 > Si el indicador dice "servidor sin configurar", falta el paso 2 o el redeploy. Sin base de datos la app funciona igual, pero el progreso queda solo en cada navegador.
+
+## Compilar desde la página (ejecutor local en WSL)
+
+La página no puede compilar C por sí sola: los ejercicios usan `fork`, pipes y sockets, que necesitan un Linux real.
+Por eso hay un ejecutor pequeño (`runner/cognition_runner.py`, solo biblioteca estándar de Python) que corre en tu PC:
+
+```bash
+# en Ubuntu (WSL)
+sudo apt update && sudo apt install -y gcc python3 curl
+curl -fsSL https://<tu-app>.vercel.app/runner/cognition_runner.py -o ~/cognition_runner.py
+python3 ~/cognition_runner.py --origen https://<tu-app>.vercel.app
+```
+
+La página muestra estos comandos ya con tu dirección (*Ejercicios → un ejercicio → En pantalla + compilar*).
+
+**Seguridad:**
+- El ejecutor solo escucha en `127.0.0.1` y solo acepta pedidos del sitio indicado en `--origen`, con una cabecera propia que obliga al navegador a verificar el origen.
+- Cada prueba corre en una carpeta temporal que se borra al terminar, con límites de tiempo y sin dejar procesos vivos.
+- Aun así, ejecuta código: no lo inicies con orígenes en los que no confíes.
 
 ## Cómo funciona la sincronización
 

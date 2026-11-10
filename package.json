@@ -5,8 +5,13 @@
   "description": "Cognition: herramienta de estudio con práctica en papel, repetición espaciada y sincronización",
   "scripts": {
     "construir": "node app/build.cjs",
-    "probar": "node app/build.cjs --todos --out=test/index.test.html && cd test && node dom.test.cjs && node api.test.mjs"
+    "probar": "node app/build.cjs --todos --out=test/index.test.html && cd test && node dom.test.cjs && node api.test.mjs",
+    "probar-ejecutor": "node test/runner.test.mjs && node app/build.cjs --todos --out=test/index.test.html && cd test && node editor.test.cjs"
   },
-  "devDependencies": { "jsdom": "^24.1.3" },
-  "engines": { "node": ">=18" }
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

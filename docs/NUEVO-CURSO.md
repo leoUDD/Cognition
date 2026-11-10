@@ -66,6 +66,30 @@ void f(int *x) {
 
 En Python usa `#@TODO`, `#@END` y `#§`; en SQL, `--@TODO`, `--@END` y `--§`.
 
+## Pruebas automáticas (`pruebas.js`, opcional)
+
+Con el **ejecutor local** (WSL, ver README), el modo *En pantalla + compilar* compila el código del estudiante y lo prueba.
+Cada ejercicio con código puede tener un plan en `pruebas.js`:
+
+```js
+Object.assign(pruebas, {
+  'EJ1': {
+    compilar: [{ src: ['servidor.c'], out: 'servidor', flags: ['-lm'] }],    // gcc -Wall -Wextra
+    pasos: [
+      { tipo: 'iniciar', nombre: 'Tu servidor', cmd: './servidor', puerto: 7070, log: 'servidor.out', critico: true },
+      { tipo: 'python', nombre: 'Protocolo', archivo: 'prueba/sonda.py', timeout: 20 },
+      { tipo: 'ejecutar', nombre: 'Salida', cmd: './prog', timeout: 10, guardar: 'salida.txt',
+        espera: { salida: '...', contiene: ['...'], noContiene: ['...'] } }
+    ]
+  }
+});
+```
+
+- En `src` y `archivo`: el nombre a secas es el archivo **del estudiante**; `ref/<archivo>` es la solución del mismo ejercicio; `ref/<ID>/<archivo>`, la de otro ejercicio (por ejemplo, probar el cliente contra el servidor de referencia); `prueba/<archivo>` está en `cursos/<id>/pruebas/`.
+- Las sondas en Python hacen `from cognition_prueba import *` y usan `ok()`, `falla()`, `check()`, `conectar(puerto)`, `Linea(sock)` y `leer_archivo()`. Los programas de prueba en C también pueden imprimir `OK: ...` o `FALLA: ...`.
+- Para probar funciones sueltas, crea `pruebas/x.c` con `#include "../archivo_del_estudiante.c"` y un `main`. Si el archivo del estudiante ya trae `main`, usa `#define main main_estudiante` antes del include.
+- **Verifica siempre las dos direcciones:** la solución de referencia debe pasar (`node test/runner.test.mjs ID`) y un error típico debe fallar con un mensaje que enseñe.
+
 ## Tarjetas (`tarjetas.js`)
 
 `tarjetas.push({ id, t: '<id de tema>', q: '<pregunta HTML>', a: '<respuesta HTML>' })`.

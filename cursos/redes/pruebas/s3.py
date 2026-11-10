@@ -1,0 +1,17 @@
+import time
+from cognition_prueba import *
+c = Linea(conectar(7003))
+c.enviar("REPORT Bobbie posicion Ma"); time.sleep(0.2); c.enviar("rte\nQUERY Bobbie\n")
+r1, r2 = c.leer(), c.leer()
+check(r1 == "STORED" and r2 == "posicion Marte", "Mensaje partido en dos recv(): el buffer acumulador lo reconstruye", "Con un REPORT partido esperaba STORED y 'posicion Marte', recibí %r / %r" % (r1, r2))
+c.enviar("QUERY Nadie\nSTATUS\n")
+r1, r2 = c.leer(), c.leer()
+check(r1 == "UNKNOWN", "QUERY de un agente desconocido → UNKNOWN", "Esperaba UNKNOWN, recibí %r" % r1)
+check(r2 == "AGENTS 1", "Dos mensajes pegados en un recv(): responde ambos (STATUS → AGENTS 1)", "Esperaba 'AGENTS 1', recibí %r" % r2)
+c.enviar("ALERT 2 flota detectada\n"); r = c.leer()
+check(r == "ACK_ALERT", "ALERT nivel 2 → ACK_ALERT", "Esperaba ACK_ALERT, recibí %r" % r)
+c.enviar("ALERT 3 abortar\n"); r = c.leer(); fin = c.leer(timeout=1)
+check(r == "ACK_ALERT" and fin is None, "ALERT nivel 3 → responde y desconecta", "Nivel 3: esperaba ACK_ALERT y luego cierre, recibí %r / %r" % (r, fin))
+d = Linea(conectar(7003)); d.enviar("QUERY Bobbie\n"); r = d.leer()
+check(r == "posicion Marte", "Un cliente nuevo ve lo que reportó otro (estado compartido)", "Un segundo cliente no ve el REPORT anterior (%r): ¿usaste fork()? Cada hijo tiene su copia de la tabla" % r)
+terminar()

@@ -168,10 +168,11 @@ VIEWS.ejercicios = () => {
   <div><div class="eyebrow">${esc(GROUPS.find(g => g[0] === ex.group)[1])} · ${esc(ex.n)}</div><h1>${esc(ex.title)}</h1><div class="muted small">${exPts(ex)} ${ex.rubric ? 'pts' : 'respuestas'} · tiempo sugerido ${ex.min} min</div></div>
   <div class="card"><h3>Enunciado</h3>${ex.statement}</div>
   ${ex.diagram ? `<div class="diag-wrap">${staticDiagram(ex.diagram)}</div>` : ''}
+  ${files.length ? `<div class="row"><span class="eyebrow">Dónde</span><div class="seg" role="group"><button class="${LUGAR === 'papel' ? 'on' : ''}" data-act="lugar" data-v="papel">En papel</button><button class="${LUGAR === 'pantalla' ? 'on' : ''}" data-act="lugar" data-v="pantalla">En pantalla + compilar</button></div><span class="muted small">${LUGAR === 'papel' ? 'como en la evaluación' : 'para comprobar que funciona'}</span></div>` : ''}
   ${files.length ? `<div class="row"><span class="eyebrow">Ayuda</span><div class="seg" role="group">${Object.entries(MODES).map(([k, n]) => `<button class="${EJ.mode === k ? 'on' : ''}" data-act="exMode" data-v="${k}">${n}</button>`).join('')}</div><span class="muted small">menos ayuda = más XP</span></div>
-   ${files.length > 1 ? `<div class="tabsf">${files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}</button>`).join('')}</div>` : ''}
+   ${LUGAR === 'pantalla' ? editorHtml(ex) : `${files.length > 1 ? `<div class="tabsf">${files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}</button>`).join('')}</div>` : ''}
    ${EJ.mode === 'ninguno' ? `<div class="callout">Escribe en tu hoja ${files.length > 1 ? 'los archivos ' + files.map(x => '<code>' + esc(x.name) + '</code>').join(', ') : '<code>' + esc(f.name) + '</code>'} desde cero, con los <code>#include</code>. Es lo más cercano a programar sin esqueleto.</div>`
-     : `<pre class="code">${highlight(renderCode(f.code, EJ.mode, langOf(ex)), langOf(ex))}</pre><div class="muted small">${countTodos(f.code)} bloques TODO${EJ.mode === 'alto' ? ' · ' + countKeys(f.code) + ' líneas ocultas' : ''}</div>`}` : ''}
+     : `<pre class="code">${highlight(renderCode(f.code, EJ.mode, langOf(ex)), langOf(ex))}</pre><div class="muted small">${countTodos(f.code)} bloques TODO${EJ.mode === 'alto' ? ' · ' + countKeys(f.code) + ' líneas ocultas' : ''}</div>`}`}` : ''}
   ${ex.fields ? fieldsHtml(ex) : ''}
   <div class="card row spread"><div><div class="eyebrow">Cronómetro</div><div class="timer" id="timer">${fmtT(elapsed())}</div></div>
    <div class="row"><button class="btn" data-act="exTimer">${EJ.run ? 'Pausar' : 'Iniciar'}</button><button class="btn" data-act="exHint" ${EJ.hints >= (ex.hints || []).length || EJ.revealed ? 'disabled' : ''}>Pista (${EJ.hints}/${(ex.hints || []).length})</button></div></div>
@@ -243,7 +244,8 @@ VIEWS.tarjetas = () => {
 
 /* ===== Acciones ===== */
 const ACT = {
-  openEx(el) { stopTimer(); Object.assign(EJ, { sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
+  openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') pingRunner().then(render);
+    Object.assign(EJ, { sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
   exBack() { stopTimer(); EJ.sel = null; render(); window.scrollTo(0, 0); },
   exMode(el) { EJ.mode = el.dataset.v; render(); },
   exFile(el) { EJ.file = +el.dataset.i; render(); },
