@@ -1,0 +1,67 @@
+/* Construye index.html a partir de app/ (motor) y cursos/ (contenido).
+   Uso: node app/build.cjs            → index.html con los ramos de cursos/ (salta los que empiezan con "_")
+        node app/build.cjs --todos     → incluye también los "_" (lo usan las pruebas) */
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const ROOT = path.join(__dirname, '..'), APP = __dirname, CURSOS_DIR = path.join(ROOT, 'cursos');
+const todos = process.argv.includes('--todos');
+const out = (process.argv.find(a => a.startsWith('--out=')) || '--out=index.html').slice(6);
+const EXT_LANG = { '.c': 'c', '.h': 'c', '.cpp': 'cpp', '.java': 'java', '.js': 'js', '.py': 'python', '.sql': 'sql' };
+const errores = [];
+const fallo = (curso, msg) => errores.push(`[${curso}] ${msg}`);
+
+function cargarCurso(dir) {
+  const base = path.join(CURSOS_DIR, dir);
+  const curso = {}, ejercicios = [], tarjetas = [];
+  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas }, { filename: f });
+  if (!fs.existsSync(path.join(base, 'curso.js'))) { fallo(dir, 'falta curso.js'); return null; }
+  correr(path.join(base, 'curso.js'));
+  const ls = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.js')).sort().map(f => path.join(d, f)) : [];
+  ls(path.join(base, 'ejercicios')).forEach(correr);
+  if (fs.existsSync(path.join(base, 'tarjetas.js'))) correr(path.join(base, 'tarjetas.js'));
+  const id = curso.id || dir;
+  /* validación: mensajes claros para quien agregue contenido */
+  ['nombre'].forEach(k => { if (!curso[k]) fallo(id, `curso.js: falta "${k}"`); });
+  const temas = new Set((curso.temas || []).map(t => t.id)), grupos = new Set((curso.grupos || []).map(g => g.id));
+  const ids = new Set();
+  ejercicios.forEach(e => {
+    const q = `ejercicio ${e.id || '(sin id)'}`;
+    ['id', 'title', 'statement', 'topic', 'group'].forEach(k => { if (!e[k]) fallo(id, `${q}: falta "${k}"`); });
+    if (ids.has(e.id)) fallo(id, `${q}: id repetido`); ids.add(e.id);
+    if (e.topic && !temas.has(e.topic)) fallo(id, `${q}: el tema "${e.topic}" no está en curso.temas`);
+    if (e.group && !grupos.has(e.group)) fallo(id, `${q}: el grupo "${e.group}" no está en curso.grupos`);
+    if (!e.rubric && !e.fields) fallo(id, `${q}: necesita "rubric" (autoevaluación) o "fields" (autocorrección)`);
+    if (!e.think) fallo(id, `${q}: falta "think" (explicación de la solución)`);
+    e.n = e.n || e.id; e.lvl = e.lvl || 1; e.min = e.min || 10;
+    if (e.files) e.files = e.files.map(f => {
+      const p = path.join(base, 'soluciones', f);
+      if (!fs.existsSync(p)) { fallo(id, `${q}: no existe soluciones/${f}`); return { name: path.basename(f), code: '' }; }
+      return { name: path.basename(f), code: fs.readFileSync(p, 'utf8') };
+    });
+    if (!e.lang && e.files && e.files[0]) e.lang = EXT_LANG[path.extname(e.files[0].name)] || curso.lenguaje;
+  });
+  const tids = new Set();
+  tarjetas.forEach(t => {
+    if (!t.id || !t.q || !t.a) fallo(id, `tarjeta ${t.id || '?'}: necesita id, q y a`);
+    if (tids.has(t.id)) fallo(id, `tarjeta ${t.id}: id repetido`); tids.add(t.id);
+    if (!temas.has(t.t)) fallo(id, `tarjeta ${t.id}: el tema "${t.t}" no está en curso.temas`);
+  });
+  const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');
+  return { config: { ...curso, id, ejercicios, tarjetas }, modulos };
+}
+
+const dirs = fs.readdirSync(CURSOS_DIR).filter(d => fs.statSync(path.join(CURSOS_DIR, d)).isDirectory() && (todos || !d.startsWith('_'))).sort();
+const cursos = dirs.map(cargarCurso).filter(Boolean);
+if (errores.length) { console.error('Errores en el contenido:\n  ' + errores.join('\n  ')); process.exit(1); }
+if (!cursos.length) { console.error('No hay ramos en cursos/.'); process.exit(1); }
+
+const read = f => fs.readFileSync(path.join(APP, f), 'utf8');
+const sinExports = js => js.replace(/if \(typeof module !== 'undefined'\) module\.exports[^\n]*/g, '');
+const js = [
+  'const CURSOS = ' + JSON.stringify(cursos.map(c => c.config)) + ';',
+  sinExports(read('core.js')), read('sync.js'), read('ui.js'),
+  ...cursos.map(c => c.modulos),
+  'activarCurso(S.curso); route(); syncPull();'
+].join('\n');
+const html = read('template.html').replace('/*CSS*/', () => read('style.css')).replace('/*JS*/', () => js);
+fs.writeFileSync(path.join(ROOT, out), html);
+console.log(`${out}: ${(html.length / 1024).toFixed(0)} KB · ` + cursos.map(c => `${c.config.id} (${c.config.ejercicios.length} ejercicios, ${c.config.tarjetas.length} tarjetas)`).join(' · '));

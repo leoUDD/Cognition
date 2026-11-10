@@ -1,0 +1,8 @@
+node_modules/
+.vercel/
+test/index.test.html
+*.o
+*.exe
+log.txt
+registro.log
+experimento.dat
