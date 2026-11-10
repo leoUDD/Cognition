@@ -25,6 +25,7 @@ function cargarCurso(dir) {
   referencia.forEach(r => {
     if (!r.id || !r.titulo || !(r.texto || r.codigo)) fallo(id, `referencia ${r.id || '?'}: necesita id, titulo y texto o codigo`);
     if (rids.has(r.id)) fallo(id, `referencia ${r.id}: id repetido`); rids.add(r.id);
+    (r.partes || []).forEach((x, i) => { if (!x || !x.s || !x.d) fallo(id, `referencia ${r.id}: partes[${i}] necesita s (sintaxis) y d (explicación)`); });
   });
   Object.entries(usaPatrones).forEach(([eid, lista]) => {
     const e = ejercicios.find(x => x.id === eid);

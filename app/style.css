@@ -185,6 +185,15 @@ main.ancho{max-width:1440px}
 .ref h3{margin:0}.ref p{margin:0}.ref-cuando{font-size:.92rem;background:var(--accent-soft);border-radius:8px;padding:6px 10px}
 .ref.compacta{padding:12px}.ref.compacta pre.code{font-size:12.3px}
 h2.ref-g{margin:12px 0 0}
+.ref-partes{border-top:1px dashed var(--line);padding-top:8px}
+.ref-partes summary{cursor:pointer;font-weight:600}
+.rp-tabla{display:flex;flex-direction:column;margin-top:8px}
+.rp-fila{display:grid;grid-template-columns:minmax(120px,32%) 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.93rem}
+.rp-fila:last-child{border-bottom:0}
+.rp-s{font-family:var(--f-mono);font-size:12.5px;white-space:pre-wrap;word-break:break-word;background:var(--accent-soft);border-radius:6px;padding:4px 8px;align-self:start;justify-self:start;max-width:100%}
+.rp-ojo{margin-top:4px;font-size:.88rem;color:var(--ink-soft,inherit)}
+.ref-recuerda{font-size:.92rem;border-left:3px solid var(--accent);padding:4px 10px}
+.ref.compacta .rp-fila{grid-template-columns:1fr;gap:4px}
 #refpanel{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);z-index:55;background:var(--paper);border-left:1px solid var(--line);box-shadow:-12px 0 30px -12px rgba(0,0,0,.35);display:none;flex-direction:column}
 #refpanel.on{display:flex}
 #refpanel .rp-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card)}

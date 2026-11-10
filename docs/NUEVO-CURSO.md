@@ -117,10 +117,13 @@ Object.assign(pruebas, {
 
 ## Referencia del lenguaje (`referencia.js`, opcional)
 
-`referencia.push({ id, grupo, titulo, cuando, texto, codigo })` crea la pestaña de referencia (con el nombre de `curso.referenciaNombre`, por ejemplo "Sintaxis de C"). También se abre como **panel lateral** dentro de cada ejercicio, sin perder lo escrito en el editor.
+`referencia.push({ id, grupo, titulo, cuando, texto, codigo, partes, recuerda })` crea la pestaña de referencia (con el nombre de `curso.referenciaNombre`, por ejemplo "Sintaxis de C"). También se abre como **panel lateral** dentro de cada ejercicio, sin perder lo escrito en el editor.
 
 - **Sintaxis básica:** lo que se olvida (formatos de printf, punteros, strings…).
 - **Patrones del ramo:** el esqueleto comentado de cada tipo de programa, con `cuando` (en qué ejercicios se usa). Es la mejor ayuda para empezar desde cero.
+- `partes` (recomendado) es la sección **Pieza por pieza**: `[{ s: 'n->clock', d: 'qué es y para qué sirve (HTML)', ojo: 'error típico (opcional)' }]`. Explica **cada** símbolo y función que aparece en `codigo`; el estudiante no debería encontrar nada sin explicar. Escribe `d` como se leería la línea en voz alta ("el campo clock del Node apuntado por n").
+- `recuerda` (opcional) es un truco de una línea para memorizar la entrada (sigla, regla rápida).
+- Puedes ponerlos dentro de cada entrada o, como en `cursos/redes/referencia.js`, en un mapa `PIEZAS` al final que se mezcla con `Object.assign`.
 - Al final de `referencia.js`, `Object.assign(usaPatrones, { EJ1: ['id-patron', …] })` indica qué patrones usa cada ejercicio. Aparecen como "Patrones que usa" y abren el panel en ese esqueleto.
 - Verifica que cada fragmento compile.
 
