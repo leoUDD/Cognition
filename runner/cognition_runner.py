@@ -18,7 +18,7 @@ Solo usa la biblioteca estándar de Python 3.8+.
 import argparse, json, os, re, shlex, shutil, signal, socket, subprocess, sys, tempfile, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.0"
+VERSION = "1.1"
 MAX_BODY = 2 * 1024 * 1024
 MAX_OUT = 20000
 ORIGENES = set()
@@ -251,7 +251,12 @@ def main():
     a = ap.parse_args()
     for o in a.origen: ORIGENES.add(o.rstrip("/"))
     if not shutil.which("gcc"): print("⚠ No encontré gcc. Instálalo con: sudo apt install -y gcc", file=sys.stderr)
-    srv = ThreadingHTTPServer((a.host, a.puerto), Manejador)
+    try:
+        srv = ThreadingHTTPServer((a.host, a.puerto), Manejador)
+    except OSError:
+        print("El puerto %d ya está en uso: probablemente el ejecutor ya está corriendo (se inicia solo con Windows)." % a.puerto)
+        print("Si quieres reiniciarlo: pkill -f cognition_runner.py   y vuelve a ejecutar este comando.")
+        sys.exit(1)
     print("Ejecutor de Cognition %s escuchando en http://%s:%d" % (VERSION, a.host, a.puerto))
     print("Sitios autorizados: " + (", ".join(sorted(ORIGENES)) or "(solo localhost)"))
     print("Deja esta ventana abierta mientras estudias. Ctrl+C para cerrar.")

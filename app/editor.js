@@ -31,19 +31,23 @@ function chipRunner() {
 function ayudaRunner() {
   const origen = location.origin.startsWith('http') ? location.origin : 'https://TU-APP.vercel.app';
   const cmd = (txt) => `<div class="cmdrow"><pre class="code cmd">${esc(txt)}</pre><button class="btn sm" data-act="copiar" data-txt="${esc(txt)}">Copiar</button></div>`;
-  const motivo = { no: 'No encontré el ejecutor en tu PC.', origen: 'El ejecutor está corriendo, pero no autorizó a este sitio. Vuelve a iniciarlo con el comando del paso 4 (incluye <code>--origen</code>).', singcc: 'El ejecutor corre, pero falta gcc: ejecuta el paso 2.' }[RUN.estado] || '';
+  const motivo = { no: 'No encontré el ejecutor en tu PC. Si ya lo instalaste, puede que Windows aún no lo haya iniciado: abre Ubuntu y escribe <code>cognition</code>.', origen: 'El ejecutor está corriendo, pero no autorizó a este sitio. Repite el paso 2 con el comando de esta página.', singcc: 'El ejecutor corre, pero falta gcc: ejecuta el paso 2.' }[RUN.estado] || '';
   return `<div class="card stack" style="gap:10px"><h3 style="margin:0">Conectar el compilador (WSL)</h3>
   ${motivo ? `<div class="callout warn small">${motivo}</div>` : ''}
   <p class="small muted" style="margin:0">El ejecutor es un programa pequeño que corre en el Linux de tu PC (WSL), compila con gcc y prueba tu código. Solo acepta pedidos de este sitio y desde tu propio computador.</p>
   <ol class="clean small">
-   <li><b>¿Tienes WSL?</b> En PowerShell: ${cmd('wsl -l -v')} Si no aparece Ubuntu, en PowerShell <b>como administrador</b> ejecuta ${cmd('wsl --install')} reinicia el PC y crea tu usuario de Linux.</li>
-   <li><b>En Ubuntu</b>, instala gcc: ${cmd('sudo apt update && sudo apt install -y gcc python3 curl')}</li>
-   <li><b>Descarga el ejecutor</b> (una vez): ${cmd(`curl -fsSL ${origen}/runner/cognition_runner.py -o ~/cognition_runner.py`)}</li>
-   <li><b>Inícialo</b> cada vez que estudies (deja la ventana abierta): ${cmd(`python3 ~/cognition_runner.py --origen ${origen}`)}
-   Atajo opcional, para después escribir solo <code>cognition</code>: ${cmd(`echo "alias cognition='python3 ~/cognition_runner.py --origen ${origen}'" >> ~/.bashrc && source ~/.bashrc`)}</li>
+   <li><b>En PowerShell</b>, revisa que tengas Ubuntu: ${cmd('wsl -l -v')}
+   Si no aparece, instálalo (PowerShell <b>como administrador</b>, luego reinicia el PC): ${cmd('wsl --install')}
+   Si Ubuntu no tiene el <code>*</code> (por ejemplo, porque tienes Docker), déjalo como predeterminado: ${cmd('wsl --set-default Ubuntu')}</li>
+   <li><b>Entra a Ubuntu</b> (escribe <code>wsl</code> en PowerShell) y pega este único comando. Instala gcc si falta, descarga el ejecutor y lo deja <b>iniciándose solo con Windows</b>: ${cmd(`curl -fsSL ${origen}/runner/instalar.sh | bash -s -- ${origen}`)}
+   Cuando termine dirá <i>“Listo”</i>. Esto se hace <b>una sola vez</b>.</li>
    <li>Vuelve aquí y presiona <b>Reintentar</b>. Si el navegador pregunta si este sitio puede acceder a otros dispositivos o apps de tu red local, elige <b>Permitir</b>.</li>
   </ol>
-  <details class="small"><summary>Sigue sin conectar</summary><p>Inicia el ejecutor con <code>--host 0.0.0.0</code> además de <code>--origen</code>, y deja la dirección en <code>http://127.0.0.1:7777</code>. Si cambiaste el puerto, ajústala aquí:</p>
+  <details class="small"><summary>Instalación manual (sin inicio automático)</summary>
+   ${cmd(`curl -fsSL ${origen}/runner/cognition_runner.py -o ~/cognition_runner.py`)}
+   ${cmd(`python3 ~/cognition_runner.py --origen ${origen}`)} y deja esa ventana abierta mientras estudias.</details>
+  <details class="small"><summary>Desinstalar</summary>${cmd('~/.cognition/desinstalar.sh')}</details>
+  <details class="small"><summary>Sigue sin conectar</summary><p>En Ubuntu ejecuta <code>pkill -f cognition_runner.py; cognition --host 0.0.0.0</code> y deja la dirección en <code>http://127.0.0.1:7777</code>. Revisa también el registro: <code>tail ~/.cognition/ejecutor.log</code>. Si cambiaste el puerto, ajústala aquí:</p>
    <div class="row"><input type="text" id="runurl" value="${esc(RUN.url)}" style="font-family:var(--f-mono);width:240px" aria-label="Dirección del ejecutor"><button class="btn sm" data-act="runUrl">Guardar</button></div></details>
   <div class="row"><button class="btn primary" data-act="runPing">Reintentar</button>${chipRunner()}</div></div>`;
 }

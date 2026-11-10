@@ -51,7 +51,7 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   /* sin ejecutor: muestra la guía de instalación */
   w.eval("RUN.url = 'http://127.0.0.1:7777'.replace('7777','7');"); w.eval('RUN.estado="no"; render()');
   ok(/Conectar el compilador/.test(d.querySelector('#view').textContent) && d.querySelector('[data-act=compilar]').disabled, 'sin ejecutor: guía y botón deshabilitado');
-  ok(d.querySelector('#view').textContent.includes('--origen http://localhost:3000'), 'el comando incluye el origen del sitio');
+  ok(d.querySelector('#view').textContent.includes('instalar.sh | bash -s -- http://localhost:3000'), 'el comando incluye el origen del sitio');
   /* modo papel sigue igual */
   click('[data-act=lugar][data-v=papel]'); ok(d.querySelector('pre.code') && !d.querySelector('#ed'), 'modo papel sin editor');
   console.log(errs.length ? errs.join('\n') : 'EDITOR OK'); process.exit(0);

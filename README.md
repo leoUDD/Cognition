@@ -59,11 +59,11 @@ La página no puede compilar C por sí sola: los ejercicios usan `fork`, pipes y
 Por eso hay un ejecutor pequeño (`runner/cognition_runner.py`, solo biblioteca estándar de Python) que corre en tu PC:
 
 ```bash
-# en Ubuntu (WSL)
-sudo apt update && sudo apt install -y gcc python3 curl
-curl -fsSL https://<tu-app>.vercel.app/runner/cognition_runner.py -o ~/cognition_runner.py
-python3 ~/cognition_runner.py --origen https://<tu-app>.vercel.app
+# en Ubuntu (WSL), una sola vez
+curl -fsSL https://<tu-app>.vercel.app/runner/instalar.sh | bash -s -- https://<tu-app>.vercel.app
 ```
+
+El instalador (`runner/instalar.sh`) instala gcc si falta y deja el ejecutor en `~/.cognition/`. También crea el comando `cognition` y agrega un archivo en la carpeta de Inicio de Windows, para que el ejecutor arranque oculto al iniciar sesión. En cada arranque se actualiza desde el sitio. Para desinstalar: `~/.cognition/desinstalar.sh`.
 
 La página muestra estos comandos ya con tu dirección (*Ejercicios → un ejercicio → En pantalla + compilar*).
 
