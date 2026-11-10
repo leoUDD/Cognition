@@ -50,8 +50,13 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   ok(w.eval('RUN.ultimo.ok') === true, 'S1 con tus 2 archivos pasa');
   /* sin ejecutor: muestra la guía de instalación */
   w.eval("RUN.url = 'http://127.0.0.1:7777'.replace('7777','7');"); w.eval('RUN.estado="no"; render()');
-  ok(/Conectar el compilador/.test(d.querySelector('#view').textContent) && d.querySelector('[data-act=compilar]').disabled, 'sin ejecutor: guía y botón deshabilitado');
+  ok(/Compilador apagado/.test(d.querySelector('#view').textContent) && d.querySelector('[data-act=compilar]').disabled && d.querySelector('[data-act=runIniciar]'), 'sin ejecutor: botón Iniciar compilador y Compilar deshabilitado');
   ok(d.querySelector('#view').textContent.includes('instalar.sh | bash -s -- http://localhost:3000'), 'el comando incluye el origen del sitio');
+  /* Iniciar compilador: abre cognition:// y espera a que responda */
+  w.eval("RUN.url = 'http://127.0.0.1:7777'; RUN.estado = 'no'; render()");
+  click('[data-act=runIniciar]'); for (let i = 0; i < 60 && w.eval('RUN.estado') !== 'ok'; i++) await sleep(100);
+  ok(w.eval('RUN.estado') === 'ok', 'Iniciar compilador conecta cuando el ejecutor responde');
+  ok(w.eval('vistoRunner()'), 'recuerda que ya lo instalaste (abre solo la próxima vez)');
   /* modo papel sigue igual */
   click('[data-act=lugar][data-v=papel]'); ok(d.querySelector('pre.code') && !d.querySelector('#ed'), 'modo papel sin editor');
   console.log(errs.length ? errs.join('\n') : 'EDITOR OK'); process.exit(0);

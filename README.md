@@ -63,7 +63,11 @@ Por eso hay un ejecutor pequeño (`runner/cognition_runner.py`, solo biblioteca 
 curl -fsSL https://<tu-app>.vercel.app/runner/instalar.sh | bash -s -- https://<tu-app>.vercel.app
 ```
 
-El instalador (`runner/instalar.sh`) instala gcc si falta y deja el ejecutor en `~/.cognition/`. También crea el comando `cognition` y agrega un archivo en la carpeta de Inicio de Windows, para que el ejecutor arranque oculto al iniciar sesión. En cada arranque se actualiza desde el sitio. Para desinstalar: `~/.cognition/desinstalar.sh`.
+El instalador (`runner/instalar.sh`) instala gcc si falta y deja el ejecutor en `~/.cognition/`. Además registra el enlace `cognition://` en Windows (en `HKCU`, sin permisos de administrador) con un lanzador oculto.
+
+- **Se enciende desde la página:** el botón *Iniciar compilador* abre `cognition://`, que inicia el ejecutor en WSL. La primera vez Chrome pide permiso: marca "Permitir siempre".
+- **Se apaga solo:** mientras la página está abierta, le avisa al ejecutor cada 20 s. Al cerrarla le pide apagarse, y lo hace en unos 15 s. Si no llega ningún aviso, se apaga a los 120 s. Nada se inicia con Windows ni queda corriendo.
+- En cada arranque se actualiza desde el sitio. Para desinstalar: `~/.cognition/desinstalar.sh`. Para encenderlo a mano: `cognition` en Ubuntu.
 
 La página muestra estos comandos ya con tu dirección (*Ejercicios → un ejercicio → En pantalla + compilar*).
 

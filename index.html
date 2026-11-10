@@ -557,7 +557,7 @@ VIEWS.tarjetas = () => {
 
 /* ===== Acciones ===== */
 const ACT = {
-  openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') pingRunner().then(render);
+  openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') { if (vistoRunner()) iniciarRunner(); else pingRunner().then(render); }
     Object.assign(EJ, { sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
   exBack() { stopTimer(); EJ.sel = null; render(); window.scrollTo(0, 0); },
   exMode(el) { EJ.mode = el.dataset.v; render(); },
@@ -633,37 +633,62 @@ const codigoInicial = (ex, f) => renderCode(f.code, EJ.mode === 'ninguno' ? 'med
 const textoEditor = (ex, f) => borrador(ex, f) ?? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f));
 const sinMarcas = code => code.split('\n').filter(l => !/^\s*(\/\/|#|--)@(TODO|END)/.test(l)).map(l => l.replace(/\s*(\/\/|#|--)§\s*$/, '')).join('\n');
 
-async function pingRunner() {
-  RUN.estado = 'buscando';
+const vistoRunner = () => { try { return localStorage.getItem('cognition-runner-visto') === '1'; } catch (e) { return false; } };
+/* Abre cognition:// (registrado por el instalador): Windows inicia el ejecutor oculto en WSL.
+   Debe llamarse desde un clic (el navegador lo exige). Luego espera hasta 25 s a que responda. */
+async function iniciarRunner() {
+  if (RUN.estado === 'ok' || RUN.estado === 'iniciando') return;
+  RUN.estado = 'iniciando'; render();
+  try { location.href = 'cognition://iniciar'; } catch (e) { }
+  for (let i = 0; i < 35; i++) {
+    await new Promise(r => setTimeout(r, 700));
+    await pingRunner(true);
+    if (RUN.estado === 'ok' || RUN.estado === 'origen' || RUN.estado === 'singcc') break;
+    RUN.estado = 'iniciando';
+  }
+  if (RUN.estado === 'iniciando') RUN.estado = 'noinicia';
+  render();
+}
+/* Mientras la página esté abierta, avisa al ejecutor cada 20 s; al cerrarla, le pide apagarse */
+setInterval(() => { if (RUN.estado === 'ok') pingRunner(true).then(() => { if (RUN.estado !== 'ok' && cur === 'ejercicios') render(); }); }, 20000);
+window.addEventListener('pagehide', () => { if (RUN.estado === 'ok' && navigator.sendBeacon) navigator.sendBeacon(RUN.url + '/cerrar', ''); });
+async function pingRunner(silencioso) {
+  if (!silencioso) RUN.estado = 'buscando';
   try {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 1500);
     const r = await fetch(RUN.url + '/salud', { signal: ctl.signal }); clearTimeout(t);
     if (r.status === 403) { RUN.estado = 'origen'; return; }
     RUN.info = await r.json(); RUN.estado = RUN.info.gcc ? 'ok' : 'singcc';
+    if (RUN.estado === 'ok') try { localStorage.setItem('cognition-runner-visto', '1'); } catch (e) { }
   } catch (e) { RUN.estado = 'no'; }
 }
 function chipRunner() {
-  const t = { desconocido: ['', 'ejecutor: sin revisar'], buscando: ['', 'buscando ejecutor…'], ok: ['ok', 'ejecutor conectado'], no: ['err', 'ejecutor no encontrado'], origen: ['err', 'ejecutor: sitio no autorizado'], singcc: ['err', 'ejecutor sin gcc'] }[RUN.estado];
+  const t = { desconocido: ['', 'ejecutor: sin revisar'], buscando: ['', 'buscando ejecutor…'], iniciando: ['', 'iniciando compilador…'], noinicia: ['err', 'el compilador no arrancó'], ok: ['ok', 'ejecutor conectado'], no: ['err', 'ejecutor no encontrado'], origen: ['err', 'ejecutor: sitio no autorizado'], singcc: ['err', 'ejecutor sin gcc'] }[RUN.estado];
   return `<span class="syncchip ${t[0]}">${t[1]}</span>`;
 }
 function ayudaRunner() {
   const origen = location.origin.startsWith('http') ? location.origin : 'https://TU-APP.vercel.app';
   const cmd = (txt) => `<div class="cmdrow"><pre class="code cmd">${esc(txt)}</pre><button class="btn sm" data-act="copiar" data-txt="${esc(txt)}">Copiar</button></div>`;
-  const motivo = { no: 'No encontré el ejecutor en tu PC. Si ya lo instalaste, puede que Windows aún no lo haya iniciado: abre Ubuntu y escribe <code>cognition</code>.', origen: 'El ejecutor está corriendo, pero no autorizó a este sitio. Repite el paso 2 con el comando de esta página.', singcc: 'El ejecutor corre, pero falta gcc: ejecuta el paso 2.' }[RUN.estado] || '';
-  return `<div class="card stack" style="gap:10px"><h3 style="margin:0">Conectar el compilador (WSL)</h3>
+  const motivo = { noinicia: 'El compilador no respondió. Si nunca lo instalaste, sigue los pasos de abajo. Si ya lo hiciste, revisa que Chrome no haya bloqueado el enlace (ícono a la derecha de la barra de direcciones) o inícialo a mano: en Ubuntu escribe <code>cognition</code>.', origen: 'El ejecutor está corriendo, pero no autorizó a este sitio. Repite el paso 2 con el comando de esta página.', singcc: 'El ejecutor corre, pero falta gcc: ejecuta el paso 2.' }[RUN.estado] || '';
+  const visto = vistoRunner();
+  return `<div class="card stack" style="gap:10px"><h3 style="margin:0">Compilador apagado</h3>
+  <p class="small muted" style="margin:0">El compilador es un programa pequeño que corre en el Linux de tu PC (WSL). Se enciende cuando lo pides aquí y se apaga solo cuando cierras la página: no queda nada corriendo.</p>
+  <div class="row"><button class="btn primary" data-act="runIniciar" ${RUN.estado === 'iniciando' ? 'disabled' : ''}>${RUN.estado === 'iniciando' ? 'Iniciando… (WSL tarda unos segundos)' : 'Iniciar compilador'}</button><button class="btn sm" data-act="runPing">Ya está abierto: revisar</button>${chipRunner()}</div>
+  <p class="small muted" style="margin:0">La primera vez Chrome pregunta si quieres abrir <b>Cognition</b>: marca <b>“Permitir siempre”</b> y acepta. Si pregunta por acceso a la red local, elige <b>Permitir</b>.</p>
   ${motivo ? `<div class="callout warn small">${motivo}</div>` : ''}
-  <p class="small muted" style="margin:0">El ejecutor es un programa pequeño que corre en el Linux de tu PC (WSL), compila con gcc y prueba tu código. Solo acepta pedidos de este sitio y desde tu propio computador.</p>
+  <details class="small" ${visto ? '' : 'open'}><summary><b>Primera vez: instalarlo</b> (una sola vez)</summary>
   <ol class="clean small">
    <li><b>En PowerShell</b>, revisa que tengas Ubuntu: ${cmd('wsl -l -v')}
    Si no aparece, instálalo (PowerShell <b>como administrador</b>, luego reinicia el PC): ${cmd('wsl --install')}
    Si Ubuntu no tiene el <code>*</code> (por ejemplo, porque tienes Docker), déjalo como predeterminado: ${cmd('wsl --set-default Ubuntu')}</li>
-   <li><b>Entra a Ubuntu</b> (escribe <code>wsl</code> en PowerShell) y pega este único comando. Instala gcc si falta, descarga el ejecutor y lo deja <b>iniciándose solo con Windows</b>: ${cmd(`curl -fsSL ${origen}/runner/instalar.sh | bash -s -- ${origen}`)}
-   Cuando termine dirá <i>“Listo”</i>. Esto se hace <b>una sola vez</b>.</li>
-   <li>Vuelve aquí y presiona <b>Reintentar</b>. Si el navegador pregunta si este sitio puede acceder a otros dispositivos o apps de tu red local, elige <b>Permitir</b>.</li>
+   <li><b>Entra a Ubuntu</b> (escribe <code>wsl</code> en PowerShell) y pega este comando. Instala gcc si falta, descarga el ejecutor y registra el enlace <code>cognition://</code> para que esta página pueda encenderlo: ${cmd(`curl -fsSL ${origen}/runner/instalar.sh | bash -s -- ${origen}`)}
+   Cuando termine dirá <i>“Listo”</i>. Ya puedes cerrar Ubuntu.</li>
+   <li>Presiona <b>Iniciar compilador</b> (arriba).</li>
   </ol>
-  <details class="small"><summary>Instalación manual (sin inicio automático)</summary>
+  </details>
+  <details class="small"><summary>Sin el enlace cognition:// (a mano)</summary>
    ${cmd(`curl -fsSL ${origen}/runner/cognition_runner.py -o ~/cognition_runner.py`)}
-   ${cmd(`python3 ~/cognition_runner.py --origen ${origen}`)} y deja esa ventana abierta mientras estudias.</details>
+   ${cmd(`python3 ~/cognition_runner.py --origen ${origen}`)} y deja esa ventana abierta mientras estudias (Ctrl+C para apagarlo).</details>
   <details class="small"><summary>Desinstalar</summary>${cmd('~/.cognition/desinstalar.sh')}</details>
   <details class="small"><summary>Sigue sin conectar</summary><p>En Ubuntu ejecuta <code>pkill -f cognition_runner.py; cognition --host 0.0.0.0</code> y deja la dirección en <code>http://127.0.0.1:7777</code>. Revisa también el registro: <code>tail ~/.cognition/ejecutor.log</code>. Si cambiaste el puerto, ajústala aquí:</p>
    <div class="row"><input type="text" id="runurl" value="${esc(RUN.url)}" style="font-family:var(--f-mono);width:240px" aria-label="Dirección del ejecutor"><button class="btn sm" data-act="runUrl">Guardar</button></div></details>
@@ -728,7 +753,12 @@ async function compilarYProbar() {
   const res = $('#resultados'); if (res) res.scrollIntoView({ block: 'nearest' });
 }
 Object.assign(ACT, {
-  lugar(el) { LUGAR = el.dataset.v; try { localStorage.setItem('cognition-lugar', LUGAR); } catch (e) { } if (LUGAR === 'pantalla' && RUN.estado !== 'ok') pingRunner().then(render); render(); },
+  lugar(el) {
+    LUGAR = el.dataset.v; try { localStorage.setItem('cognition-lugar', LUGAR); } catch (e) { }
+    if (LUGAR === 'pantalla' && RUN.estado !== 'ok') { if (vistoRunner()) iniciarRunner(); else pingRunner().then(render); }
+    render();
+  },
+  runIniciar() { iniciarRunner(); },
   compilar() { compilarYProbar(); },
   edReset() { const ex = curEx(), f = ex.files[EJ.file]; borrarBorrador(ex, f.name); render(); },
   runPing() { pingRunner().then(render); render(); },

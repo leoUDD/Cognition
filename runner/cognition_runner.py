@@ -18,11 +18,13 @@ Solo usa la biblioteca estándar de Python 3.8+.
 import argparse, json, os, re, shlex, shutil, signal, socket, subprocess, sys, tempfile, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.1"
+VERSION = "1.2"
 MAX_BODY = 2 * 1024 * 1024
 MAX_OUT = 20000
 ORIGENES = set()
 LOCK = threading.Lock()          # una ejecución a la vez: los ejercicios usan puertos fijos
+ULTIMO = [time.time()]           # último contacto de la página (para el cierre automático)
+AUTO_CERRAR = [0]                # segundos sin contacto antes de apagarse (0 = nunca)
 
 AYUDA_PRUEBA = r'''
 """Utilidades para las pruebas en Python (las genera el ejecutor)."""
@@ -219,14 +221,24 @@ class Manejador(BaseHTTPRequestHandler):
         self.send_response(code); self.cabeceras()
         self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body)))
         self.end_headers(); self.wfile.write(body)
+    def contacto(self):
+        if self.origen_ok(): ULTIMO[0] = time.time()
     def do_OPTIONS(self):
+        self.contacto()
         self.send_response(204 if self.origen_ok() else 403); self.cabeceras(); self.end_headers()
     def do_GET(self):
+        self.contacto()
         if self.path != "/salud": return self.responder(404, {"error": "no existe"})
         if not self.origen_ok(): return self.responder(403, {"error": "origen no autorizado", "origen": self.headers.get("Origin")})
         gcc = shutil.which("gcc")
         self.responder(200, {"ok": True, "version": VERSION, "gcc": bool(gcc), "ocupado": LOCK.locked()})
     def do_POST(self):
+        if self.path == "/cerrar":
+            # La página se cerró (navigator.sendBeacon): apagarse en ~15 s, salvo que otra pestaña siga avisando
+            if self.origen_ok() and AUTO_CERRAR[0]:
+                ULTIMO[0] = time.time() - AUTO_CERRAR[0] + 15
+            return self.responder(200, {"ok": True})
+        self.contacto()
         if self.path != "/ejecutar": return self.responder(404, {"error": "no existe"})
         # Exigir el origen autorizado y una cabecera propia: obliga al navegador a hacer preflight CORS
         if not self.origen_ok() or self.headers.get("X-Cognition") != "1":
@@ -248,7 +260,9 @@ def main():
     ap.add_argument("--puerto", type=int, default=7777)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--origen", action="append", default=[], help="URL del sitio autorizado, ej. https://cognition.vercel.app")
+    ap.add_argument("--auto-cerrar", type=int, default=0, help="apagarse tras N segundos sin noticias de la página (0 = nunca)")
     a = ap.parse_args()
+    AUTO_CERRAR[0] = max(0, a.auto_cerrar)
     for o in a.origen: ORIGENES.add(o.rstrip("/"))
     if not shutil.which("gcc"): print("⚠ No encontré gcc. Instálalo con: sudo apt install -y gcc", file=sys.stderr)
     try:
@@ -259,7 +273,17 @@ def main():
         sys.exit(1)
     print("Ejecutor de Cognition %s escuchando en http://%s:%d" % (VERSION, a.host, a.puerto))
     print("Sitios autorizados: " + (", ".join(sorted(ORIGENES)) or "(solo localhost)"))
-    print("Deja esta ventana abierta mientras estudias. Ctrl+C para cerrar.")
+    if AUTO_CERRAR[0]:
+        print("Se apagará solo cuando cierres la página (o tras %d s sin noticias de ella)." % AUTO_CERRAR[0])
+        def vigilar():
+            while True:
+                time.sleep(2)
+                if time.time() - ULTIMO[0] > AUTO_CERRAR[0] and not LOCK.locked():
+                    print("La página se cerró: apagando el ejecutor."); sys.stdout.flush()
+                    os._exit(0)
+        threading.Thread(target=vigilar, daemon=True).start()
+    else:
+        print("Deja esta ventana abierta mientras estudias. Ctrl+C para cerrar.")
     try: srv.serve_forever()
     except KeyboardInterrupt: print("\nHasta luego.")
 

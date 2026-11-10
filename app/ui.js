@@ -244,7 +244,7 @@ VIEWS.tarjetas = () => {
 
 /* ===== Acciones ===== */
 const ACT = {
-  openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') pingRunner().then(render);
+  openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') { if (vistoRunner()) iniciarRunner(); else pingRunner().then(render); }
     Object.assign(EJ, { sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
   exBack() { stopTimer(); EJ.sel = null; render(); window.scrollTo(0, 0); },
   exMode(el) { EJ.mode = el.dataset.v; render(); },
