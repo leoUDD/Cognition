@@ -19,6 +19,11 @@ int n_agentes = 0;
 /* Retorna 1 si hay que desconectar al cliente */
 int procesar_mensaje(char *msg, int fd) {
 //@TODO 1 | Despachar los 4 tipos de mensaje
+//? Hay 4 tipos de mensaje. ¿Con qué distingues cada uno y qué responde?
+//- REPORT: sscanf "REPORT %31s %127[^\n]"; busca o agrega el agente (máx. 10) y guarda el dato → STORED.
+//- QUERY: busca el agente → su dato o UNKNOWN.
+//- ALERT: imprime con la hora → ACK_ALERT; si el nivel es 3, retorna 1 (desconectar).
+//- STATUS: "AGENTS <n>".
     char a[32], resto[128], resp[200];
     int nivel;
     if (sscanf(msg, "REPORT %31s %127[^\n]", a, resto) == 2) { //§
@@ -53,6 +58,11 @@ int procesar_mensaje(char *msg, int fd) {
 
 void atender(int fd) {
 //@TODO 2 | Buffer acumulador: procesar solo líneas completas
+//? TCP puede entregarte medio mensaje o dos pegados. ¿Cómo procesas solo líneas completas?
+//- recv(fd, buf + total, sizeof(buf) - total - 1, 0); total += n; buf[total] = '\0'.
+//- while ((nl = strchr(buf, '\n'))): *nl = '\0' y procesar_mensaje(buf).
+//- usado = (nl - buf) + 1; memmove(buf, nl + 1, total - usado + 1); total -= usado.
+//- Si procesar pidió desconectar → return.
     char buf[4096];
     int total = 0, n;
     while ((n = recv(fd, buf + total, sizeof(buf) - total - 1, 0)) > 0) { //§

@@ -26,6 +26,12 @@ int reloj = 0;              /* reloj Lamport del concentrador */
 /* HIJO: atiende una sonda y manda cada evento al padre por la pipe */
 void atender_sonda(int fd, int pfd) {
 //@TODO 1 | Recibir líneas (buffer acumulador), parsear ts y enviar al padre
+//? El hijo recibe texto por TCP (puede llegar partido o pegado) y debe pasarle cada evento al padre. ¿Cómo separas las líneas?
+//- Acumula: n = recv(fd, buf + total, …); total += n; buf[total] = '\0'.
+//- Mientras haya un \n (strchr): córtalo ahí y procesa esa línea.
+//- sscanf de TELEM o RELAY para sacar el ts; el pid sale de "ARES-%d".
+//- write(pfd, &ev, sizeof ev) al padre.
+//- memmove para correr el resto al inicio y total -= bytes usados.
     char buf[512];
     int total = 0, n;
     while ((n = recv(fd, buf + total, sizeof(buf) - total - 1, 0)) > 0) { //§
@@ -62,6 +68,11 @@ int cmp_ev(const void *a, const void *b) {
 /* PADRE: escribe los pendientes ordenados por (ts, pid) */
 void flush_log(void) {
 //@TODO 2 | Ordenar y escribir en registro.log
+//? Cada 2 segundos, ¿cómo escribes los pendientes en orden causal?
+//- Si no hay pendientes, return.
+//- qsort(pend, npend, sizeof(PendingEvent), cmp_ev): por ts y luego por pid.
+//- fopen("registro.log", "a") y fprintf de cada uno.
+//- fclose y npend = 0.
     if (npend == 0) return;
     qsort(pend, npend, sizeof(PendingEvent), cmp_ev); //§
     FILE *f = fopen("registro.log", "a"); //§
@@ -76,6 +87,12 @@ void flush_log(void) {
 int main(void) {
     int p[2];
 //@TODO 3 | Socket servidor, pipe hijos→padre y loop con select()
+//? El padre debe aceptar sondas nuevas, leer eventos de la pipe y hacer el flush cada 2 s, todo sin bloquearse en una sola cosa.
+//- Socket servidor (socket, bind, listen) y pipe(p), ANTES de cualquier fork.
+//- Loop: FD_SET(srv) y FD_SET(p[0]); select con timeout de 1 s.
+//- srv listo: accept y fork (el hijo cierra srv y p[0] y atiende; el padre cierra cli).
+//- p[0] listo: read de un PendingEvent; reloj = max(reloj, ev.ts) + 1; guárdalo.
+//- Si pasaron 2 s desde el último flush: flush_log().
     int srv = socket(AF_INET, SOCK_STREAM, 0); //§
     int opt = 1;
     setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt);

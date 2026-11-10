@@ -4,18 +4,26 @@
 
 bool has_quorum(int alive, int cluster_size) {
 //@TODO 1 | Implementar has_quorum
+//? Mayoría estricta de N nodos: ¿cuántos necesitas como mínimo?
+//- Quórum = N/2 + 1 (división entera).
+//- return alive >= quórum.
     return alive >= cluster_size / 2 + 1; //§
 //@END
 }
 
 int max_failures(int cluster_size) {
 //@TODO 2 | Implementar max_failures
+//? Si necesitas Q vivos de N, ¿cuántos pueden caer?
+//- return N − (N/2 + 1).
     return cluster_size - (cluster_size / 2 + 1); //§
 //@END
 }
 
 int side_with_quorum(int size_a, int size_b) {
 //@TODO 3 | Implementar side_with_quorum
+//? En una partición, cada lado se compara contra el TOTAL del clúster, no contra su propio tamaño.
+//- total = a + b.
+//- Si has_quorum(a, total) → 0; si has_quorum(b, total) → 1; si ninguno → −1.
     int total = size_a + size_b;
     if (has_quorum(size_a, total)) return 0; //§
     if (has_quorum(size_b, total)) return 1; //§

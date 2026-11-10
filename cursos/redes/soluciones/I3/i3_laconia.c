@@ -25,6 +25,10 @@ int main(void) {
         int cli = accept(srv, NULL, NULL);
         if (cli < 0) continue;
 //@TODO 1 | Atender ALERT NIVEL_3 y responder RESULT PROTOCOLO_OSIRIS_ACTIVADO
+//? Laconia es un servidor iterativo simple. ¿Qué responde a cada alerta?
+//- while (recv(cli, …) > 0): termina el string.
+//- Si sscanf(buf, "ALERT NIVEL_3 %d", &activas) == 1 → imprime y responde "RESULT PROTOCOLO_OSIRIS_ACTIVADO\n".
+//- Si no → "RESULT ERROR\n". Al salir del loop: close(cli).
         char buf[256];
         int n, activas;
         while ((n = recv(cli, buf, sizeof(buf) - 1, 0)) > 0) { //§

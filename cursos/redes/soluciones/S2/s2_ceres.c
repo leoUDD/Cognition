@@ -11,6 +11,9 @@
 
 const char *bahia_para(const char *carga) {
 //@TODO 1 | Tabla carga -> bahía
+//? Es un mapeo de texto a texto. ¿Qué retornas si la carga no existe?
+//- Una comparación strcmp por cada tipo de carga, retornando su bahía.
+//- Si ninguna coincide: return NULL.
     if (strcmp(carga, "AGUA") == 0)        return "Bahia-A"; //§
     if (strcmp(carga, "SILICATOS") == 0)   return "Bahia-B"; //§
     if (strcmp(carga, "OXIGENO") == 0)     return "Bahia-C"; //§
@@ -21,6 +24,11 @@ const char *bahia_para(const char *carga) {
 
 void atender_nave(int fd) {
 //@TODO 2 | Protocolo DOCK / CAST_OFF
+//? Una nave puede atracar varias veces y luego despedirse. ¿Qué revisas primero?
+//- while (recv > 0): termina el string.
+//- Si empieza con CAST_OFF → envía BYE y break.
+//- Si sscanf "DOCK %s %s" funciona → bahia_para(carga).
+//- Responde ASIGNADO <bahía> o ERROR. Al salir: close(fd).
     char buf[256], nave[32], carga[32], resp[64];
     int n;
     while ((n = recv(fd, buf, sizeof(buf) - 1, 0)) > 0) { //§
@@ -46,6 +54,10 @@ void atender_nave(int fd) {
 
 int main(void) {
 //@TODO 3 | Servidor concurrente: fork() por cliente y sin zombis
+//? El patrón del servidor concurrente. Escríbelo sin mirar.
+//- socket, setsockopt, bind, listen.
+//- signal(SIGCHLD, SIG_IGN).
+//- Loop: accept → fork. Hijo: close(srv) inmediatamente, atender_nave, exit. Padre: close(cli).
     int srv = socket(AF_INET, SOCK_STREAM, 0); //§
     setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
     struct sockaddr_in addr;

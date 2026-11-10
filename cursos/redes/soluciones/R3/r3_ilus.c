@@ -22,6 +22,10 @@ typedef struct {
 
 /* Lee o escribe el estado completo, con el lock adecuado */
 //@TODO 1 | Acceso al archivo con flock(): LOCK_SH para leer, LOCK_EX para modificar
+//? Leer permite varios lectores a la vez; modificar necesita exclusividad total. ¿Qué tipo de lock usa cada caso?
+//- Leer: open, flock(LOCK_SH), read del struct, flock(LOCK_UN), close.
+//- Modificar: open O_RDWR, flock(LOCK_EX), read (y el llamador modifica).
+//- Guardar: lseek al inicio, write, flock(LOCK_UN), close. Leer y escribir quedan bajo el MISMO LOCK_EX.
 void leer_estado_archivo(Estado *e) {
     int fd = open(ARCHIVO, O_RDONLY); //§
     flock(fd, LOCK_SH);                 /* varios lectores a la vez */ //§
@@ -49,6 +53,11 @@ void fd_guardar_y_soltar(int fd, const Estado *e) {
 
 void atender(int sock) {
 //@TODO 2 | Las 4 funciones RPC
+//? Primero averigua qué función piden y después ejecútala con el lock que corresponda.
+//- sscanf "CALL %31s" para el nombre.
+//- registrar_muestra: bloquear_ex, agregar la muestra, num++, guardar_y_soltar.
+//- incrementar_fase: bloquear_ex, fase++, guardar_y_soltar.
+//- leer_estado / obtener_fase: leer con LOCK_SH y responder.
     char buf[256], fn[32], resp[128];
     int n;
     while ((n = recv(sock, buf, sizeof(buf) - 1, 0)) > 0) {

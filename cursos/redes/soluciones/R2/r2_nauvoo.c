@@ -30,6 +30,11 @@ int idx(const char *n) { for (int i = 0; i < NNODOS; i++) if (strcmp(nodos[i], n
 typedef void (*handler_fn)(const char *args, char *out, size_t n);
 
 //@TODO 1 | Implementar los 4 handlers
+//? Todas las funciones remotas reciben args como texto y escriben el resultado en out. ¿Qué hace cada una?
+//- calcular_quema: sscanf de dv y masa; resultado = masa·(exp(dv/9800) − 1).
+//- distancia_AU: busca el índice de cada nodo y resta las AU (fabs).
+//- ruta_optima: BFS desde el origen; reconstruye el camino con prev[] y únelo con "->".
+//- estado_reactor: uno de 3 strings al azar.
 void calcular_quema(const char *args, char *out, size_t n) {
     double dv, masa;
     if (sscanf(args, "%lf %lf", &dv, &masa) != 2) { snprintf(out, n, "ERROR args"); return; } //§
@@ -71,6 +76,8 @@ void estado_reactor(const char *args, char *out, size_t n) {
 //@END
 
 //@TODO 2 | La dispatch table: nombre -> función
+//? Una dispatch table es un arreglo de pares {nombre, puntero a función}. ¿Cómo escribes cada par?
+//- Entrada dispatch[] = { {"calcular_quema", calcular_quema}, … }: el nombre de la función sin paréntesis es su puntero.
 typedef struct { const char *nombre; handler_fn fn; } Entrada;
 Entrada dispatch[] = {
     { "calcular_quema", calcular_quema }, //§
@@ -83,6 +90,10 @@ Entrada dispatch[] = {
 
 void atender(int fd) {
 //@TODO 3 | Parsear "CALL <funcion> <args>", buscar en la tabla y responder
+//? Llega "CALL f args". ¿Cómo encuentras y llamas la función correcta sin un if por cada una?
+//- sscanf "CALL %31s %199[^\n]" (el segundo captura todos los args juntos).
+//- Recorre dispatch[]: si strcmp coincide → dispatch[i].fn(args, res, sizeof res).
+//- Responde "RESULT <res>\n"; si ninguna coincidió, un RESULT de error.
     char buf[256], fn[32], args[200], res[200], resp[256];
     int n;
     while ((n = recv(fd, buf, sizeof(buf) - 1, 0)) > 0) { //§

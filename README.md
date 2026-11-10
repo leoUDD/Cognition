@@ -5,7 +5,9 @@ Un motor genérico donde **cada ramo es una carpeta de contenido**.
 
 - **Hoy:** plan del día, meta de XP, racha, cuenta regresiva a tus evaluaciones y mapa de dominio por tema.
 - **Ejercicios:** enunciado, tres niveles de ayuda (líneas clave ocultas → solo los TODO → sin esqueleto), cronómetro, pistas, solución explicada y autoevaluación con rúbrica o autocorrección.
-- **Tarjetas:** teoría con repetición espaciada.
+- **Guía paso a paso:** para quedarse en blanco: método general, pregunta guía y pasos por cada TODO, y revelar el código línea por línea como último recurso.
+- **Glosario:** los conceptos del ramo se marcan en los textos y se abren al tocarlos; cada ejercicio lista los que usa.
+- **Tarjetas:** teoría con repetición espaciada; tu respuesta queda al lado de la solución para compararlas.
 - **En pantalla + compilar:** editor con números de línea; con el ejecutor local en WSL compila con gcc y corre las pruebas del ejercicio (tu servidor contra un cliente de prueba, tu cliente contra el servidor de referencia, salida esperada…).
 - **Módulos:** pestañas propias de un ramo (por ejemplo, Relojes y Drills en Redes).
 - **Sincronización:** el mismo progreso en el PC y el celular, con un código.
@@ -28,6 +30,7 @@ cursos/
     curso.js            configuración: nombre, temas, grupos, evaluaciones, lenguaje…
     ejercicios/*.js     ejercicios.push({...})
     tarjetas.js         tarjetas.push({...})
+    glosario.js         glosario.push({...})
     soluciones/         código de las soluciones con marcas //@TODO y //§
     modulos/            pestañas propias del ramo (opcional)
   _plantilla/           punto de partida para un ramo nuevo (no aparece en la app)

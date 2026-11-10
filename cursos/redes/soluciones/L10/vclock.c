@@ -11,12 +11,17 @@ typedef struct {
 
 void vc_local(VNode *n) {
 //@TODO 1 | Incrementa solo la propia entrada
+//? En un vector clock, cada proceso solo avanza SU propia posición en un evento local. ¿Cuál es la suya?
+//- Su posición es v[pid]: n->v[n->pid]++.
     n->v[n->pid]++; //§
 //@END
 }
 
 void vc_send(VNode *n, int out[NPROC]) {
 //@TODO 2 | Incrementa y copia el vector a out
+//? Enviar = evento local + mandar una copia del vector completo.
+//- n->v[n->pid]++.
+//- for i en 0..NPROC-1: out[i] = n->v[i].
     n->v[n->pid]++; //§
     for (int i = 0; i < NPROC; i++) //§
         out[i] = n->v[i]; //§
@@ -25,6 +30,9 @@ void vc_send(VNode *n, int out[NPROC]) {
 
 void vc_recv(VNode *n, const int rcv[NPROC]) {
 //@TODO 3 | Máximo componente a componente, luego incrementa
+//? Al recibir, ¿cómo mezclas lo que tú sabes con lo que sabe el emisor sin perder información?
+//- Para cada componente i: si rcv[i] > n->v[i], n->v[i] = rcv[i] (máximo componente a componente).
+//- Después, incrementa tu propia posición: n->v[n->pid]++.
     for (int i = 0; i < NPROC; i++) //§
         if (rcv[i] > n->v[i]) n->v[i] = rcv[i]; //§
     n->v[n->pid]++; //§
@@ -34,6 +42,11 @@ void vc_recv(VNode *n, const int rcv[NPROC]) {
 /* a → b sii ∀i: a[i] ≤ b[i] y ∃j: a[j] < b[j] */
 int vc_happens_before(const int a[NPROC], const int b[NPROC]) {
 //@TODO 4 | Comparación de vectores
+//? a → b significa: a no supera a b en ninguna componente y es menor en al menos una. ¿Cómo lo revisas con un for?
+//- alguno_menor = 0.
+//- Para cada i: si a[i] > b[i] → return 0 (ya no puede ser a → b).
+//- Si a[i] < b[i] → alguno_menor = 1.
+//- Al final: return alguno_menor (si todos eran iguales, no es a → b).
     int alguno_menor = 0; //§
     for (int i = 0; i < NPROC; i++) {
         if (a[i] > b[i]) return 0; //§
@@ -45,6 +58,8 @@ int vc_happens_before(const int a[NPROC], const int b[NPROC]) {
 
 int vc_concurrent(const int a[NPROC], const int b[NPROC]) {
 //@TODO 5 | Usa vc_happens_before
+//? Dos eventos son concurrentes si ninguno ocurrió antes que el otro.
+//- return !vc_happens_before(a, b) && !vc_happens_before(b, a);
     return !vc_happens_before(a, b) && !vc_happens_before(b, a); //§
 //@END
 }

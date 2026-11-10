@@ -34,6 +34,10 @@ int main(int argc, char *argv[]) {
     inet_pton(AF_INET, argc > 2 ? argv[2] : "127.0.0.1", &hub.sin_addr);
     if (connect(fd, (struct sockaddr *)&hub, sizeof hub) < 0) { perror("connect"); return 1; }
 //@TODO 1 | Enviar "GATE_STATUS <gate> <estado> <timestamp>\n" cada 3 s
+//? Un nodo solo informa su estado cada cierto tiempo. ¿Qué lleva cada mensaje?
+//- for (i = 0; i < EVENTOS; i++).
+//- snprintf("GATE_STATUS %s %s %ld\n", nombre, estado_aleatorio(), time(NULL)).
+//- send() y sleep(PERIODO). Al final close(fd).
     for (int i = 0; i < EVENTOS; i++) {
         char msg[96];
         snprintf(msg, sizeof msg, "GATE_STATUS %s %s %ld\n", argv[1], estado_aleatorio(), (long)time(NULL)); //§

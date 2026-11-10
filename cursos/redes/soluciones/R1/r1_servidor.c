@@ -18,6 +18,9 @@ Registro tabla[] = {
 /* La función "real" que se ejecuta en el servidor */
 const char *get_estado(const char *id) {
 //@TODO 1 | Buscar en la tabla
+//? Es una búsqueda lineal en un arreglo de structs.
+//- for i: si strcmp(tabla[i].nave, id) == 0 → return su estado.
+//- Si no está: return "DESCONOCIDA".
     for (int i = 0; i < 5; i++)
         if (strcmp(tabla[i].nave, id) == 0) return tabla[i].estado; //§
     return "DESCONOCIDA"; //§
@@ -26,6 +29,10 @@ const char *get_estado(const char *id) {
 
 void atender(int fd) {
 //@TODO 2 | Skeleton del servidor: parsear CALL, ejecutar y responder RESULT
+//? El skeleton hace lo inverso al stub: deserializa, llama y serializa.
+//- while (recv > 0): termina el string.
+//- sscanf "CALL %31s %63s" y verifica que fn sea "get_estado".
+//- snprintf "RESULT %s\n" con get_estado(arg) y send.
     char buf[256], fn[32], arg[64], resp[128];
     int n;
     while ((n = recv(fd, buf, sizeof(buf) - 1, 0)) > 0) { //§

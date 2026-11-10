@@ -40,6 +40,11 @@ int va_antes(int ta, int pa, int tb, int pb) {
 
 void procesar(const Msg *m) {
 //@TODO 1 | Recepción: actualizar reloj y reaccionar según el tipo
+//? Llega un mensaje. Primero va SIEMPRE la regla de recepción de Lamport. Después, ¿qué haces según si es REQUEST, REPLY o RELEASE?
+//- reloj = max(m->ts, reloj) + 1.
+//- REQUEST: guarda su solicitud (cola_ts[m->pid] = m->ts) y respóndele REPLY con tu reloj incrementado.
+//- REPLY: replies++.
+//- RELEASE: borra su solicitud (cola_ts[m->pid] = -1) y releases++.
     reloj = (m->ts > reloj ? m->ts : reloj) + 1; //§
     if (m->type == REQUEST) {
         cola_ts[m->pid] = m->ts; //§
@@ -57,6 +62,11 @@ void procesar(const Msg *m) {
 /* Espera un mensaje de cualquiera de los otros procesos (select) y lo procesa. */
 void recibir_uno(void) {
 //@TODO 2 | select() sobre las pipes de entrada
+//? Tienes 2 pipes de entrada y no sabes por cuál llegará el próximo mensaje. ¿Qué función te avisa cuál está lista?
+//- FD_ZERO(&rd); FD_SET del extremo de lectura de cada pipe que viene hacia ti (fds[j][me][0]); guarda el mayor fd.
+//- select(maxfd + 1, &rd, NULL, NULL, NULL).
+//- Para cada j con FD_ISSET: read de un Msg.
+//- Si read devuelve 0, ese proceso murió: avisa y termina. Si no, procesar(&m).
     fd_set rd;
     int maxfd = -1;
     FD_ZERO(&rd); //§
@@ -81,6 +91,10 @@ void recibir_uno(void) {
 
 void request_cs(void) {
 //@TODO 3 | Enviar REQUEST(ts, pid) a todos (mismo ts para todos)
+//? Pedir la sección crítica: un solo timestamp para todos los destinatarios.
+//- reloj++ y guarda tu solicitud: cola_ts[me] = reloj.
+//- replies = 0.
+//- Para cada j ≠ me: enviar(j, REQUEST, cola_ts[me]).
     reloj++; //§
     cola_ts[me] = reloj; //§
     replies = 0; //§
@@ -91,6 +105,10 @@ void request_cs(void) {
 
 int puedo_entrar(void) {
 //@TODO 4 | REPLY de todos y mi solicitud es la menor (ts, pid)
+//? ¿Cuándo puedes entrar? Necesitas dos condiciones.
+//- Si replies < NPROC - 1 → return 0 (falta que alguien responda).
+//- Para cada otro j con solicitud pendiente: si (cola_ts[j], j) va antes que (cola_ts[me], me) → return 0.
+//- Si pasaste ambos filtros → return 1.
     if (replies < NPROC - 1) return 0; //§
     for (int j = 0; j < NPROC; j++)
         if (j != me && cola_ts[j] != -1 && va_antes(cola_ts[j], j, cola_ts[me], me)) //§
@@ -106,6 +124,10 @@ void enter_cs(void) {
 
 void release_cs(void) {
 //@TODO 5 | Salir: quitar mi solicitud y avisar RELEASE a todos
+//? Al salir, los demás tienen que enterarse para que el siguiente pueda entrar.
+//- cola_ts[me] = -1.
+//- reloj++.
+//- Para cada j ≠ me: enviar(j, RELEASE, reloj).
     cola_ts[me] = -1; //§
     reloj++; //§
     for (int j = 0; j < NPROC; j++)
@@ -126,6 +148,10 @@ void proceso(int id) {
     me = id;
     for (int j = 0; j < NPROC; j++) cola_ts[j] = -1;
 //@TODO 6 | Cerrar los extremos que este proceso no usa
+//? Después del fork, cada proceso tiene copia de los 12 extremos. ¿Cuáles usa el proceso me?
+//- Usa los de ESCRITURA que salen de él: fds[me][b][1].
+//- Usa los de LECTURA que llegan a él: fds[a][me][0].
+//- Recorre todos los pares (a, b) con a ≠ b y cierra el resto: si a ≠ me cierra fds[a][b][1]; si b ≠ me cierra fds[a][b][0].
     for (int a = 0; a < NPROC; a++)
         for (int b = 0; b < NPROC; b++) {
             if (a == b) continue;
@@ -148,6 +174,10 @@ void proceso(int id) {
 int main(void) {
     unlink("log.txt");
 //@TODO 7 | Crear las 6 pipes ANTES de fork() y lanzar los 3 procesos
+//? Los procesos solo comparten pipes si se crean antes del fork. ¿Cuántas necesitas para 3 procesos que se hablan de a pares?
+//- Dos for (i, j) con i ≠ j: pipe(fds[i][j]) → 6 pipes.
+//- for i: if (fork() == 0) proceso(i).
+//- El padre cierra todos los extremos y hace wait(NULL) 3 veces.
     for (int i = 0; i < NPROC; i++)
         for (int j = 0; j < NPROC; j++)
             if (i != j) pipe(fds[i][j]); //§

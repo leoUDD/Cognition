@@ -11,6 +11,10 @@ typedef struct {
 
 int total_order_cmp(const void *a, const void *b) {
 //@TODO 1 | <0 si a va primero, >0 si b va primero
+//? qsort te entrega dos punteros genéricos (void*). ¿Qué haces primero para poder leer sus campos? ¿Y qué comparas después?
+//- Convierte cada puntero: const Event *x = (const Event *)a; lo mismo con b.
+//- Si los ts son distintos, retorna x->ts - y->ts (negativo si x va antes).
+//- Si empatan, desempata con strcmp(x->proc, y->proc).
     const Event *x = (const Event *)a; //§
     const Event *y = (const Event *)b; //§
     if (x->ts != y->ts) //§

@@ -34,6 +34,11 @@ Umbral umbrales[] = {
 };
 
 //@TODO A.2 | (parte 1) evaluar(): 0 = normal, 1 = ALERTA, 2 = CRITICO
+//? Dado el umbral de una sonda y un valor, ¿cómo decides si es normal, alerta o crítico? Ojo: hay sondas donde lo malo es subir y otras donde es bajar.
+//- Si u->mayor es 1 (lo malo es subir): primero pregunta si v supera el umbral CRÍTICO → 2; si no, si supera el de ALERTA → 1.
+//- Si u->mayor es 0 (lo malo es bajar): lo mismo, pero con <.
+//- Si nada se cumplió → 0.
+//- ¿Por qué crítico primero? Un valor crítico también supera el umbral de alerta: si preguntas al revés, nunca llegas a 2.
 /* C estándar no permite funciones anidadas: evaluar() va fuera de handle_sonda() */
 int evaluar(const Umbral *u, float v) {
     if (u->mayor) {
@@ -50,6 +55,12 @@ int evaluar(const Umbral *u, float v) {
 void handle_sonda(int fd) {
     char buf[BUF_SIZE];
 //@TODO A.1 | Recibir CONNECT, validar el ID y responder HELLO o REJECT
+//? ¿Qué es lo primero que manda una sonda y qué dos respuestas posibles tiene?
+//- recv() en buf; si devuelve ≤ 0, la sonda se fue: return.
+//- Termina el string: buf[n] = '\0'.
+//- Saca el ID con sscanf(buf, "CONNECT %15s", id).
+//- Recorre umbrales[] comparando con strcmp; guarda un puntero al que coincida.
+//- Si no hay coincidencia: envía "REJECT <id>\n" y return. Si hay: envía "HELLO <id>\n".
     char id[16], resp[BUF_SIZE];
     Umbral *u = NULL;
     int n = recv(fd, buf, sizeof(buf) - 1, 0); //§
@@ -68,6 +79,12 @@ void handle_sonda(int fd) {
     printf("[BASE] %s conectada\n", id);
 //@END
 //@TODO A.2 | Loop TELEM: validar checksum, ACK/NACK, evaluar y ALERT
+//? Después del HELLO llegan muchas TELEM. ¿Qué haces con CADA una, en orden?
+//- while ((n = recv(...)) > 0): termina el string.
+//- sscanf de las 4 partes: id, seq, valor (como TEXTO con %s) y checksum.
+//- Calcula checksum(valor) y compáralo con strcmp: si difiere → NACK y continue.
+//- Si está bien: nivel = evaluar(u, atof(valor)).
+//- Arma "ACK <id> <seq>\n" y, si nivel > 0, agrega en el mismo buffer "ALERT ...". Un solo send().
     const char *nivel_txt[] = { "NORMAL", "ALERTA", "CRITICO" };
     while ((n = recv(fd, buf, sizeof(buf) - 1, 0)) > 0) { //§
         buf[n] = '\0'; //§
@@ -91,6 +108,11 @@ void handle_sonda(int fd) {
 
 int main(void) {
 //@TODO A.3 | socket, bind, listen y fork() por cada sonda
+//? Este es el esqueleto de todo servidor TCP concurrente. ¿Recuerdas los 4 pasos antes del loop y qué pasa dentro del loop?
+//- socket(AF_INET, SOCK_STREAM, 0) y setsockopt(SO_REUSEADDR).
+//- Llena sockaddr_in: AF_INET, INADDR_ANY, htons(PORT); luego bind() y listen().
+//- signal(SIGCHLD, SIG_IGN) para no dejar zombis.
+//- Loop: cli = accept(); fork(). Hijo: close(srv), handle_sonda(cli), exit(0). Padre: close(cli).
     int srv = socket(AF_INET, SOCK_STREAM, 0); //§
     int opt = 1;
     setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof opt);

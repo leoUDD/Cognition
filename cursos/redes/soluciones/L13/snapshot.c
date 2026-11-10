@@ -50,6 +50,10 @@ int snapshot_completo(void) {
 
 void tomar_snapshot(void) {
 //@TODO 1 | Registrar mi estado y enviar MARKER por todas mis pipes
+//? Tomar el snapshot es: congelar tu estado y avisar a todos por cada canal.
+//- P.snap_counter = P.counter; P.snap_taken = 1; guarda el reloj.
+//- P.clock++ (enviar es un evento).
+//- Para cada j ≠ pid: enviar(j, MARKER, 0).
     P.snap_counter = P.counter; //§
     P.snap_taken = 1; //§
     P.snap_clock = P.clock;
@@ -61,6 +65,10 @@ void tomar_snapshot(void) {
 
 void recibir(const Msg *m) {
 //@TODO 2 | Lamport + TRANSFER / MARKER
+//? Primero la regla de Lamport. Luego: ¿un TRANSFER que llega es parte del snapshot o no? ¿Y qué hace el primer MARKER?
+//- P.clock = max(m->ts, P.clock) + 1.
+//- TRANSFER: P.counter += amount. Si ya tomaste el snapshot y AÚN no llega el MARKER de ese canal → súmalo a transito[from].
+//- MARKER: si no has tomado el snapshot, tómalo ahora. Marca marker_from[from] = 1.
     P.clock = (m->ts > P.clock ? m->ts : P.clock) + 1; //§
     if (m->type == TRANSFER) {
         P.counter += m->amount; //§
@@ -111,6 +119,12 @@ void proceso(int id) {
     close(res_pipe[0]);
 
 //@TODO 3 | Loop principal: evento local, TRANSFER aleatorio, leer pipes, P0 inicia
+//? Cada vuelta del loop simula el paso del tiempo. ¿Qué ocurre en cada iteración?
+//- usleep(100000); P.clock++ (evento local).
+//- Con probabilidad 1/2 y si counter ≥ 10: elige otro destino, resta la cantidad, P.clock++ y envía TRANSFER.
+//- leer_pipes() para procesar lo que haya llegado.
+//- Si eres P0 y vas en la iteración 10 → tomar_snapshot().
+//- Sigue hasta pasar ITER y tener el snapshot completo.
     for (int it = 0; it < ITER || !snapshot_completo(); it++) {
         usleep(100000);
         P.clock++;                              /* evento local */ //§

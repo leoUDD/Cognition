@@ -12,6 +12,10 @@
 
 void atender(int fd) {
 //@TODO 1 | Recibir alertas, registrarlas con hora y responder ACK_ALERTA
+//? La base solo escucha alertas. ¿Qué hace con cada mensaje que llega?
+//- while (recv > 0): termina el string y quita el \n.
+//- time(NULL) + strftime("%H:%M:%S") para la hora.
+//- Imprime "[hora] mensaje" y responde "ACK_ALERTA\n".
     char buf[256];
     int n;
     while ((n = recv(fd, buf, sizeof(buf) - 1, 0)) > 0) { //§

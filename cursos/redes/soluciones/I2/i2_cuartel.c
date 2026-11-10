@@ -11,6 +11,12 @@
 
 void atender(int fd) {
 //@TODO 1 | Responder las dos funciones RPC
+//? Es el skeleton RPC: recibe CALL, decide qué función es y responde RESULT. ¿Qué partes tiene cada CALL?
+//- while (recv > 0): termina el string.
+//- sscanf(buf, "CALL %47s %31s %f", fn, nave, &v); si no son 3, RESULT ERROR.
+//- strcmp(fn, "solicitar_reabastecimiento") → "RESULT REBASTECER_EN <base al azar>".
+//- strcmp(fn, "solicitar_ordenes") → "RESULT ATACAR" o "RESULT RETIRARSE".
+//- send() la respuesta.
     char buf[256], fn[48], nave[32], resp[96];
     float v;
     int n;
@@ -33,6 +39,10 @@ void atender(int fd) {
 
 int main(void) {
 //@TODO 2 | Servidor concurrente con fork()
+//? Es el mismo servidor concurrente de siempre. ¿Lo puedes escribir de memoria?
+//- socket, setsockopt, sockaddr_in con htons, bind, listen.
+//- signal(SIGCHLD, SIG_IGN).
+//- Loop: accept → fork. Hijo: close(srv), srand(getpid()), atender, exit. Padre: close(cli).
     int srv = socket(AF_INET, SOCK_STREAM, 0); //§
     setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
     struct sockaddr_in addr;

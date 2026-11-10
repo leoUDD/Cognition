@@ -9,8 +9,10 @@ function parseCode(src) {
   const out = []; let blk = null;
   for (const raw of src.replace(/\r/g, '').split('\n')) {
     const m = raw.match(/^\s*(?:\/\/|#|--)@TODO\s+([^|]+?)\s*\|\s*(.*)$/);
-    if (m) { blk = { label: m[1], desc: m[2], lines: [] }; out.push({ blk }); continue; }
+    if (m) { blk = { label: m[1], desc: m[2], lines: [], pasos: [], pregunta: '' }; out.push({ blk }); continue; }
     if (/^\s*(?:\/\/|#|--)@END\s*$/.test(raw)) { blk = null; continue; }
+    const g = blk && raw.match(/^\s*(?:\/\/|#|--)([?-])\s?(.*)$/);   /* guía: //? pregunta  //- paso */
+    if (g) { if (g[1] === '?') blk.pregunta = g[2]; else blk.pasos.push(g[2]); continue; }
     const key = /(?:\/\/|#|--)§\s*$/.test(raw), t = raw.replace(/\s*(?:\/\/|#|--)§\s*$/, '');
     if (blk) blk.lines.push({ t, key }); else out.push({ t });
   }

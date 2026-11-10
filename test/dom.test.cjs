@@ -69,6 +69,41 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   ok(d.querySelector('pre.code').textContent.includes('# ???'), 'comentarios estilo python');
   ok(d.querySelector('pre.code .tk-k'), 'resaltado python');
   ok(w.eval("S.cursos.redes.papel.L01.best") === 100 && w.eval("!S.cursos.plantilla.papel.L01"), 'progreso separado por ramo');
+  /* guía paso a paso, conceptos y glosario (ramo redes) */
+  w.eval("cambiarCurso('redes')"); await go('ejercicios'); if (d.querySelector('[data-act=exBack]')) click('[data-act=exBack]');
+  const conGuia = w.eval("EXERCISES.filter(e => e.files)");
+  for (const ex of conGuia) {
+    const bl = w.eval(`bloquesDe(EXERCISES.find(e => e.id === '${ex.id}'))`);
+    ok(bl.length > 0 && bl.every(b => b.pregunta && b.pasos.length), 'cada TODO de ' + ex.id + ' tiene pregunta y pasos');
+  }
+  click('[data-act=openEx][data-id="L06"]');
+  ok(d.querySelectorAll('.conceptos .chipbtn').length >= 3, 'conceptos del ejercicio: ' + d.querySelectorAll('.conceptos .chipbtn').length);
+  click('[data-act=guiaAbrir]');
+  ok(d.querySelectorAll('.gpaso').length === 3 && /Pregúntate/.test(d.querySelector('.gpaso').textContent), 'guía con 3 pasos y pregunta');
+  click(d.querySelector('[data-act=guiaPasos]')); ok(d.querySelector('.gp-s'), 'muestra los pasos');
+  ok(d.querySelector('.gpaso.glos .term'), 'la guía marca términos del glosario');
+  const xpAntes = w.eval('earned().xp');
+  click(d.querySelector('[data-act=guiaLinea]'));
+  ok(d.querySelector('.gpaso pre.code') && /clock/.test(d.querySelector('.gpaso pre.code').textContent), 'revela la primera línea de código');
+  ok(w.eval('penalizacionGuia()') === .75, 'penalización por usar la guía: ' + w.eval('penalizacionGuia()'));
+  /* popover del glosario */
+  const termino = d.querySelector('.term'); click(termino);
+  ok(d.querySelector('#glospop.on') && d.querySelector('#glospop .gf-d').textContent.length > 20, 'el popover muestra la definición de "' + termino.textContent + '"');
+  d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' })); ok(!d.querySelector('#glospop.on'), 'Escape cierra el popover');
+  w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="C01A"]');
+  ok([...d.querySelectorAll('.card.glos .term')].some(t => /TCP|checksum|puerto/i.test(t.textContent)), 'el enunciado del Control 01 marca TCP, checksum o puerto');
+  /* vista glosario + búsqueda */
+  await go('glosario'); const n0 = d.querySelectorAll('.glos-list .card').length;
+  ok(n0 > 90, 'glosario con ' + n0 + ' términos');
+  const q = d.querySelector('#glosq'); q.value = 'quórum'; q.dispatchEvent(new w.Event('input', { bubbles: true }));
+  ok(d.querySelectorAll('.glos-list .card').length >= 1 && d.querySelectorAll('.glos-list .card').length < 10, 'la búsqueda filtra');
+  /* tarjetas: tu respuesta queda para comparar */
+  await go('tarjetas'); if (d.querySelector('[data-act=cEnd]')) click('[data-act=cEnd]');
+  click('[data-act=cStart][data-free="1"]');
+  const ta = d.querySelector('#myans'); ta.value = 'mi respuesta de prueba'; ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+  click('[data-act=cShow]');
+  ok(d.querySelector('.cmp-mia') && d.querySelector('.cmp-mia').textContent === 'mi respuesta de prueba', 'tu respuesta se muestra junto a la solución');
+  click('[data-act=cRate][data-r=good]'); ok(d.querySelector('#myans') && d.querySelector('#myans').value === '', 'la siguiente tarjeta empieza vacía');
   /* sincronización entre dos dispositivos */
   await go('hoy'); click('[data-act=syNew]'); await sleep(80);
   const code = w.eval('SY.code'); ok(/^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$/.test(code), 'codigo');

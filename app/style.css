@@ -145,3 +145,26 @@ table.t{border-collapse:collapse;width:100%}table.t td,table.t th{border:1px sol
 pre.code.out{max-height:260px;font-size:12.5px;margin-top:6px;white-space:pre-wrap}
 .cmdrow{display:flex;gap:8px;align-items:center;margin:6px 0}.cmdrow pre.cmd{flex:1;padding:8px 10px;white-space:pre-wrap;word-break:break-all;font-size:12.5px}
 .mono{font-family:var(--f-mono)}
+
+/* Glosario */
+.term{all:unset;cursor:pointer;color:inherit;text-decoration:underline dotted var(--accent);text-decoration-thickness:2px;text-underline-offset:3px;border-radius:3px}
+.term:hover,.term:focus-visible{background:var(--accent-soft);outline:none}
+#glospop{position:absolute;z-index:60;display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 12px 30px -10px rgba(0,0,0,.35)}
+#glospop.on{display:block}
+.gp-x{position:absolute;top:6px;right:8px;border:0;background:none;font-size:1.3rem;cursor:pointer;color:var(--ink-soft)}
+.gf{display:flex;flex-direction:column;gap:6px}.gf-t{font:700 1.05rem var(--f-display)}.gf-d{font-size:.94rem}
+pre.code.gf-ej{font-size:12.5px;padding:8px 10px;margin:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chipbtn{border:1px solid var(--line);background:var(--card-2);border-radius:99px;padding:3px 11px;cursor:pointer;font-size:.86rem;color:var(--ink)}
+.chipbtn:hover{border-color:var(--accent);background:var(--accent-soft)}
+details.conceptos summary{cursor:pointer}
+/* Guía paso a paso */
+.gpaso{border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.gp-h{display:flex;gap:10px;align-items:flex-start}.gp-n{flex:0 0 26px;height:26px;border-radius:99px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 .85rem var(--f-mono)}
+.gp-q,.gp-s{background:var(--card-2);border-radius:8px;padding:8px 12px}
+/* Tarjetas: comparar respuestas */
+.comparar{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:2px dashed var(--line);padding-top:12px}
+.comparar.sola{grid-template-columns:1fr}
+@media(max-width:620px){.comparar{grid-template-columns:1fr}}
+.cmp-col{display:flex;flex-direction:column;gap:6px}
+.cmp-mia{white-space:pre-wrap;background:var(--card-2);border-radius:8px;padding:10px 12px;font-size:.95rem;min-height:3em}

@@ -10,6 +10,10 @@
 
 int main(void) {
 //@TODO 1 | socket, SO_REUSEADDR, bind, listen, accept (1 cliente)
+//? Servidor de UN cliente: los 5 pasos, pero sin fork.
+//- socket y setsockopt(SO_REUSEADDR).
+//- sockaddr_in con INADDR_ANY y htons(PORT); bind; listen.
+//- cli = accept(srv, NULL, NULL): con cli hablas con el cliente.
     int srv = socket(AF_INET, SOCK_STREAM, 0); //§
     setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
     struct sockaddr_in addr;
@@ -23,6 +27,11 @@ int main(void) {
     int cli = accept(srv, NULL, NULL); //§
 //@END
 //@TODO 2 | Loop: recv, imprimir, responder "ACK <msg>\n"; terminar si recv <= 0
+//? Eco con ACK hasta que el cliente cierre. ¿Qué devuelve recv cuando el otro lado cierra?
+//- while ((n = recv(cli, …)) > 0): recv devuelve 0 cuando el cliente cierra.
+//- buf[n] = '\0' y quita el \n con strcspn.
+//- Imprime y responde "ACK <msg>\n".
+//- Al salir: close(cli) y close(srv).
     char buf[256], resp[300];
     int n;
     while ((n = recv(cli, buf, sizeof(buf) - 1, 0)) > 0) { //§

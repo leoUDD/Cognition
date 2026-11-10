@@ -12,6 +12,11 @@
 /* STUB: para quien la llama parece una función local */
 char *get_estado(int sock, char *id_nave) {
 //@TODO 1 | Serializar, enviar, recibir y deserializar
+//? El stub es una función normal de C que por dentro habla por la red. ¿Por qué el buffer de retorno debe ser static?
+//- static char estado[64] (sobrevive al return; un arreglo local desaparecería).
+//- snprintf "CALL get_estado %s\n" y send.
+//- recv; termina el string; sscanf "RESULT %63s".
+//- return estado (o NULL si falló).
     static char estado[64];                 /* static: sobrevive al return */ //§
     char msg[128];
     snprintf(msg, sizeof msg, "CALL get_estado %s\n", id_nave); //§

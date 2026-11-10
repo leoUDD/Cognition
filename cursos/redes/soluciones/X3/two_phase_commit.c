@@ -12,6 +12,10 @@ void send_abort(int replica);
 
 bool two_phase_commit(const char *key, const char *value) {
 //@TODO 1 | Implementar two_phase_commit
+//? Fase 1 pregunta y fase 2 ejecuta. ¿Basta con mayoría o se necesita unanimidad?
+//- Fase 1: para cada réplica, si send_prepare == YES → votos++.
+//- Si votos == N_REPLICAS → send_commit a todas y return true.
+//- Si no → send_abort a todas y return false.
     int votes_yes = 0;
     
     /* FASE 1: PREPARE */

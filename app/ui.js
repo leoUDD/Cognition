@@ -32,6 +32,7 @@ function activarCurso(id) {
   TOPICS = CUR.temas || []; TNAME = Object.fromEntries(TOPICS.map(t => [t.id, t.n]));
   GROUPS = (CUR.grupos || [{ id: 'general', nombre: 'Ejercicios', sub: '' }]).map(g => [g.id, g.nombre, g.sub || '']);
   EXERCISES = CUR.ejercicios || []; CARDS = CUR.tarjetas || []; TITLES = CUR.titulos || TITULOS_BASE;
+  if (typeof prepararGlosario === 'function') prepararGlosario();
 }
 const langOf = ex => ex.lang || CUR.lenguaje || 'c';
 function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
@@ -77,9 +78,10 @@ function tabsCurso() {
   if (EXERCISES.length) t.push(['ejercicios', 'Ejercicios']);
   (CUR.modulos || []).forEach(m => { if (MODULOS[m]) t.push([m, MODULOS[m].nombre]); });
   if (CARDS.length) t.push(['tarjetas', 'Tarjetas']);
+  if ((CUR.glosario || []).length) t.push(['glosario', 'Glosario']);
   return t;
 }
-function render() { renderHeader(); $('#view').innerHTML = VIEWS[cur](); }
+function render() { renderHeader(); $('#view').innerHTML = VIEWS[cur](); if (typeof enlazarGlosario === 'function') enlazarGlosario($('#view')); }
 function route() { let h = (location.hash || '#hoy').slice(1); if (h === 'papel') h = 'ejercicios'; const next = tabsCurso().some(x => x[0] === h) && VIEWS[h] ? h : 'hoy'; if (next !== cur) { stopTimer(); window.scrollTo(0, 0); } cur = next; render(); }
 
 /* ===== HOY ===== */
@@ -140,7 +142,7 @@ function earned() {
   else got = EJ.res ? EJ.res.ok : 0;
   const pct = max ? Math.round(100 * got / max) : 0;
   const base = ex.rubric ? (10 + ex.lvl * 6) * (ex.files ? MMULT[EJ.mode] : 1) : (8 + ex.lvl * 4);
-  return { got, max, pct, xp: Math.round(base * pct / 100 * Math.max(.4, 1 - .15 * EJ.hints)) };
+  return { got, max, pct, xp: Math.round(base * pct / 100 * Math.max(.3, 1 - .15 * (EJ.hints + (typeof penalizacionGuia === 'function' ? penalizacionGuia() : 0)))) };
 }
 function fieldsHtml(ex) {
   const done = !!EJ.res;
@@ -166,8 +168,10 @@ VIEWS.ejercicios = () => {
   const canReveal = !ex.fields || ex.rubric;
   return `<div class="stack"><div class="row spread"><button class="btn sm" data-act="exBack">← Ejercicios</button><span class="chip">${TNAME[ex.topic] || ''}</span></div>
   <div><div class="eyebrow">${esc(GROUPS.find(g => g[0] === ex.group)[1])} · ${esc(ex.n)}</div><h1>${esc(ex.title)}</h1><div class="muted small">${exPts(ex)} ${ex.rubric ? 'pts' : 'respuestas'} · tiempo sugerido ${ex.min} min</div></div>
-  <div class="card"><h3>Enunciado</h3>${ex.statement}</div>
+  <div class="card glos"><h3>Enunciado</h3>${ex.statement}</div>
+  ${conceptosHtml(ex)}
   ${ex.diagram ? `<div class="diag-wrap">${staticDiagram(ex.diagram)}</div>` : ''}
+  ${ex.files && !EJ.revealed ? guiaHtml(ex) : ''}
   ${files.length ? `<div class="row"><span class="eyebrow">Dónde</span><div class="seg" role="group"><button class="${LUGAR === 'papel' ? 'on' : ''}" data-act="lugar" data-v="papel">En papel</button><button class="${LUGAR === 'pantalla' ? 'on' : ''}" data-act="lugar" data-v="pantalla">En pantalla + compilar</button></div><span class="muted small">${LUGAR === 'papel' ? 'como en la evaluación' : 'para comprobar que funciona'}</span></div>` : ''}
   ${files.length ? `<div class="row"><span class="eyebrow">Ayuda</span><div class="seg" role="group">${Object.entries(MODES).map(([k, n]) => `<button class="${EJ.mode === k ? 'on' : ''}" data-act="exMode" data-v="${k}">${n}</button>`).join('')}</div><span class="muted small">menos ayuda = más XP</span></div>
    ${LUGAR === 'pantalla' ? editorHtml(ex) : `${files.length > 1 ? `<div class="tabsf">${files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}</button>`).join('')}</div>` : ''}
@@ -176,7 +180,7 @@ VIEWS.ejercicios = () => {
   ${ex.fields ? fieldsHtml(ex) : ''}
   <div class="card row spread"><div><div class="eyebrow">Cronómetro</div><div class="timer" id="timer">${fmtT(elapsed())}</div></div>
    <div class="row"><button class="btn" data-act="exTimer">${EJ.run ? 'Pausar' : 'Iniciar'}</button><button class="btn" data-act="exHint" ${EJ.hints >= (ex.hints || []).length || EJ.revealed ? 'disabled' : ''}>Pista (${EJ.hints}/${(ex.hints || []).length})</button></div></div>
-  ${EJ.hints ? `<div class="callout warn"><ol class="clean" style="margin:0">${ex.hints.slice(0, EJ.hints).map(h => `<li>${esc(h)}</li>`).join('')}</ol></div>` : ''}
+  ${EJ.hints ? `<div class="callout warn glos"><ol class="clean" style="margin:0">${ex.hints.slice(0, EJ.hints).map(h => `<li>${esc(h)}</li>`).join('')}</ol></div>` : ''}
   ${!EJ.revealed ? (canReveal ? `<div class="callout"><b>Antes de seguir:</b> escribe tu solución en una hoja. Si miras primero, solo estás leyendo, no practicando.</div><div><button class="btn primary" data-act="exReveal">Ya escribí mi solución: ver y corregir</button></div>` : '') : solutionHtml(ex, R)}</div>`;
 };
 const LANG_NAME = { c: 'C', cpp: 'C++', java: 'Java', js: 'JavaScript', python: 'Python', sql: 'SQL' };
@@ -187,13 +191,13 @@ function comandoPara(ex, f) {
 }
 function solutionHtml(ex, R) {
   const files = ex.files || [], sf = files[EJ.solFile];
-  return `<div class="card"><h3>Cómo pensarlo</h3><ul class="clean">${ex.think.map(x => `<li>${x}</li>`).join('')}</ul></div>
+  return `<div class="card glos"><h3>Cómo pensarlo</h3><ul class="clean">${ex.think.map(x => `<li>${x}</li>`).join('')}</ul></div>
   ${ex.solDiagram ? `<div><div class="eyebrow" style="margin-bottom:6px">Diagrama de la solución</div><div class="diag-wrap">${staticDiagram(ex.solDiagram)}</div></div>` : ''}
   ${files.length ? `<div><div class="eyebrow" style="margin-bottom:6px">Solución de referencia${CUR.solucionesProbadas ? ' (probada)' : ''}</div>${files.length > 1 ? `<div class="tabsf">${files.map((x, i) => `<button class="opt ${EJ.solFile === i ? 'on' : ''}" data-act="exSolFile" data-i="${i}">${esc(x.name)}</button>`).join('')}</div>` : ''}
    <pre class="code">${highlight(renderCode(sf.code, 'sol', langOf(ex)), langOf(ex))}</pre><div class="row" style="margin-top:6px"><button class="btn sm" data-act="exCopy">Copiar ${esc(sf.name)}</button>${comandoPara(ex, sf) ? `<span class="muted small">Para ejecutar: <code>${esc(comandoPara(ex, sf))}</code></span>` : ''}</div></div>` : ''}
   ${ex.out ? `<div><div class="eyebrow" style="margin-bottom:6px">Salida de ejemplo</div><pre class="code">${esc(ex.out)}</pre></div>` : ''}
-  ${ex.qs ? `<div class="card"><h3>Preguntas del enunciado</h3>${ex.qs.map(q => `<div class="qa"><div class="qq">${q.q}</div><div>${q.a}</div></div>`).join('')}</div>` : ''}
-  ${ex.errors ? `<div class="card"><h3>Errores típicos</h3><ul class="clean">${ex.errors.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+  ${ex.qs ? `<div class="card glos"><h3>Preguntas del enunciado</h3>${ex.qs.map(q => `<div class="qa"><div class="qq">${q.q}</div><div>${q.a}</div></div>`).join('')}</div>` : ''}
+  ${ex.errors ? `<div class="card glos"><h3>Errores típicos</h3><ul class="clean">${ex.errors.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
   ${ex.rubric ? `<div class="card rubric"><h3>Corrígete como el profesor</h3><p class="muted small">Marca solo lo que tu hoja tenía bien. Sé estricto.</p>
    ${ex.rubric.map((r, i) => `<label><input type="checkbox" data-act="exTick" data-i="${i}" ${EJ.ticks[i] ? 'checked' : ''} ${EJ.saved ? 'disabled' : ''}><span>${esc(r.t)}</span><span class="pts">${r.pts} pt</span></label>`).join('')}
    <div class="row spread" style="margin-top:12px"><div><span class="score">${R.got}/${R.max}</span> <span class="muted">${R.pct}% · +${R.xp} XP</span></div>
@@ -237,15 +241,17 @@ VIEWS.tarjetas = () => {
   return `<div class="stack"><div class="row spread"><button class="btn sm" data-act="cEnd">← Salir</button><span class="muted small">${CV.i + 1} / ${CV.queue.length}</span></div>
   <div class="bar"><i style="width:${100 * CV.i / CV.queue.length}%"></i></div>
   <div class="card fc"><span class="chip">${TNAME[c.t]}</span><div class="q">${c.q}</div>
-  ${!CV.shown ? `<label class="small muted" for="myans">Tu respuesta (opcional; mejor en papel)</label><textarea id="myans"></textarea><button class="btn primary" data-act="cShow">Mostrar respuesta</button>` :
-      `<div class="a">${c.a}</div>`}</div>
+  ${!CV.shown ? `<label class="small muted" for="myans">Tu respuesta (opcional; también puedes responder en papel)</label><textarea id="myans">${esc(CV.mia || '')}</textarea><button class="btn primary" data-act="cShow">Mostrar respuesta</button>` :
+      `<div class="comparar ${CV.mia && CV.mia.trim() ? '' : 'sola'}">${CV.mia && CV.mia.trim() ? `<div class="cmp-col"><div class="eyebrow">Tu respuesta</div><div class="cmp-mia">${esc(CV.mia)}</div></div>` : ''}
+       <div class="cmp-col glos"><div class="eyebrow">Respuesta</div><div class="a">${c.a}</div></div></div>
+       <p class="small muted" style="margin:0">Compara: ¿dijiste lo esencial (lo que está en negrita)? Si te faltó una idea clave, marca <b>Difícil</b> u <b>Otra vez</b>.</p>`}</div>
   ${CV.shown ? `<div class="rate">${[['again', 'Otra vez'], ['hard', 'Difícil'], ['good', 'Bien'], ['easy', 'Fácil']].map(([r, n]) => { const ns = nextState(c.id, r); return `<button class="btn" data-act="cRate" data-r="${r}">${n}<small>${ns.days === 0 ? 'hoy' : ns.days + ' d'}</small></button>`; }).join('')}</div>` : ''}</div>`;
 };
 
 /* ===== Acciones ===== */
 const ACT = {
   openEx(el) { stopTimer(); RUN.ultimo = null; EJ.pruebasOk = false; if (typeof LUGAR !== 'undefined' && LUGAR === 'pantalla' && RUN.estado !== 'ok') { if (vistoRunner()) iniciarRunner(); else pingRunner().then(render); }
-    Object.assign(EJ, { sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
+    Object.assign(EJ, { guia: {}, guiaAbierta: false, verConceptos: false, sel: el.dataset.id, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, run: false, ans: {}, res: null, file: 0, solFile: 0 }); if (cur !== 'ejercicios') location.hash = '#ejercicios'; else render(); window.scrollTo(0, 0); },
   exBack() { stopTimer(); EJ.sel = null; render(); window.scrollTo(0, 0); },
   exMode(el) { EJ.mode = el.dataset.v; render(); },
   exFile(el) { EJ.file = +el.dataset.i; render(); },
@@ -255,7 +261,7 @@ const ACT = {
   exReveal() { stopTimer(); EJ.revealed = true; render(); },
   exTick(el) { EJ.ticks[el.dataset.i] = el.checked; const R = earned(), sc = $('.rubric .score'); if (sc) { sc.textContent = `${R.got}/${R.max}`; sc.nextElementSibling.textContent = ` ${R.pct}% · +${R.xp} XP`; } },
   exSave() { saveResult(curEx(), earned()); render(); },
-  exAgain() { Object.assign(EJ, { hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, ans: {}, res: null }); render(); window.scrollTo(0, 0); },
+  exAgain() { Object.assign(EJ, { guia: {}, guiaAbierta: false, hints: 0, revealed: false, ticks: {}, saved: false, acc: 0, ans: {}, res: null }); render(); window.scrollTo(0, 0); },
   exNext() { const i = EXERCISES.findIndex(e => e.id === EJ.sel), nx = EXERCISES[(i + 1) % EXERCISES.length]; ACT.openEx({ dataset: { id: nx.id } }); },
   async exCopy() { const ex = curEx(), f = ex.files[EJ.solFile]; try { await navigator.clipboard.writeText(renderCode(f.code, 'sol', langOf(ex))); toast('Copiado'); } catch (e) { toast('No se pudo copiar'); } },
   fldPick(el) { EJ.ans[el.dataset.k] = el.dataset.v; render(); },
@@ -274,14 +280,14 @@ const ACT = {
   syNow() { syncPull().then(render); },
   syOff() { syncSetCode(null); setSync('local'); render(); },
   cFilter(el) { CV.filter = el.dataset.v; render(); },
-  cStart(el) { CV.queue = buildQueue(el.dataset.free === '1'); CV.i = 0; CV.shown = false; CV.on = true; CV.done = 0; render(); },
+  cStart(el) { CV.queue = buildQueue(el.dataset.free === '1'); CV.i = 0; CV.shown = false; CV.mia = ''; CV.on = true; CV.done = 0; render(); },
   cEnd() { CV.on = false; render(); },
-  cShow() { CV.shown = true; render(); },
+  cShow() { const t = $('#myans'); if (t) CV.mia = t.value; CV.shown = true; render(); },
   cRate(el) {
     const id = CV.queue[CV.i], r = el.dataset.r, ns = nextState(id, r), c = CARDS.find(x => x.id === id);
     P.cards[id] = { box: ns.box, due: addDays(today(), ns.days) }; record(c.t, r === 'good' || r === 'easy');
     if (r === 'again' && CV.queue.slice(CV.i + 1).indexOf(id) < 0) CV.queue.push(id);
-    CV.done++; CV.i++; CV.shown = false; save(); addXp({ again: 0, hard: 2, good: 4, easy: 5 }[r]); render();
+    CV.done++; CV.i++; CV.shown = false; CV.mia = ''; save(); addXp({ again: 0, hard: 2, good: 4, easy: 5 }[r]); render();
   },
 
 };
@@ -295,6 +301,7 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.fld !== undefined) EJ.ans[t.dataset.fld] = t.value;
+  if (t.id === 'myans') CV.mia = t.value;
   if (t.id === 'sycode') SY.pendingCode = t.value.trim().toLowerCase();
 });
 function cambiarCurso(id) {

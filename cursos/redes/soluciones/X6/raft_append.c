@@ -23,6 +23,9 @@ typedef struct {
 
 bool log_matches(const RaftNode *n, int prev_log_index, int prev_log_term) {
 //@TODO 1 | Implementar log_matches
+//? ¿Tiene el follower la entrada prev_log_index con el term que dice el líder?
+//- Si prev_log_index > last_log_index → false (no la tiene).
+//- return log[prev_log_index].term == prev_log_term.
     if (prev_log_index > n->last_log_index) return false; //§
     return n->log[prev_log_index].term == prev_log_term; //§
 //@END
@@ -30,6 +33,11 @@ bool log_matches(const RaftNode *n, int prev_log_index, int prev_log_term) {
 
 bool on_append_entries(RaftNode *n, const AppendEntriesArgs *args) {
 //@TODO 2 | Implementar on_append_entries
+//? Primero los rechazos; después copiar las entradas y avanzar el commit.
+//- term del líder < current_term → false; si no, adopta su term.
+//- Si !log_matches → false.
+//- Para cada entrada k: idx = prev_log_index + 1 + k; log[idx] = entries[k]; last_log_index = idx.
+//- Si leader_commit > commit_index → commit_index = min(leader_commit, last_log_index).
     if (args->term < n->current_term) return false; //§
     n->current_term = args->term;
     

@@ -66,6 +66,22 @@ void f(int *x) {
 
 En Python usa `#@TODO`, `#@END` y `#§`; en SQL, `--@TODO`, `--@END` y `--§`.
 
+### Guía paso a paso (dentro de cada TODO)
+
+Justo después de `//@TODO`, agrega una pregunta guía con `//?` y los pasos en pseudocódigo con `//-`. No aparecen en el código que ve el estudiante: alimentan el botón *"No sé por dónde empezar"*.
+
+```c
+//@TODO 3 | Recepción: C <- max(C, T) + 1
+//? Al recibir, el reloj debe quedar por delante de su pasado y del emisor. ¿Cómo combinas los dos valores?
+//- Si el ts recibido es mayor que tu reloj, tu reloj salta a ese valor (el max).
+//- Después, en cualquier caso, súmale 1.
+    if (ts_recv > n->clock) n->clock = ts_recv; //§
+    n->clock++; //§
+//@END
+```
+
+La pregunta debe hacer **pensar** (no dar la respuesta). Los pasos van en español, en el orden en que se escribe el código.
+
 ## Pruebas automáticas (`pruebas.js`, opcional)
 
 Con el **ejecutor local** (WSL, ver README), el modo *En pantalla + compilar* compila el código del estudiante y lo prueba.
@@ -89,6 +105,15 @@ Object.assign(pruebas, {
 - Las sondas en Python hacen `from cognition_prueba import *` y usan `ok()`, `falla()`, `check()`, `conectar(puerto)`, `Linea(sock)` y `leer_archivo()`. Los programas de prueba en C también pueden imprimir `OK: ...` o `FALLA: ...`.
 - Para probar funciones sueltas, crea `pruebas/x.c` con `#include "../archivo_del_estudiante.c"` y un `main`. Si el archivo del estudiante ya trae `main`, usa `#define main main_estudiante` antes del include.
 - **Verifica siempre las dos direcciones:** la solución de referencia debe pasar (`node test/runner.test.mjs ID`) y un error típico debe fallar con un mensaje que enseñe.
+
+## Glosario (`glosario.js`)
+
+`glosario.push({ id, t: 'término', alias: ['otras formas'], def: 'definición HTML corta', ej: 'código de ejemplo (opcional)', ver: ['ids relacionados'] })`.
+
+- Cada término y alias se marca **automáticamente** (primera aparición por sección) en enunciados, pistas, guías, explicaciones y respuestas de tarjetas. Al tocarlo se abre su definición.
+- Cada ejercicio lista al inicio los conceptos que usa.
+- **Cuidado con los alias genéricos:** una palabra común ("cliente", "concurrente") se marcará donde no corresponde. Prefiere frases ("servidor concurrente", "eventos concurrentes").
+- Las definiciones deben bastarle a alguien que **no recuerda** el concepto: qué es, para qué sirve y, si aplica, una línea de código.
 
 ## Tarjetas (`tarjetas.js`)
 

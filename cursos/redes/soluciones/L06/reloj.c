@@ -8,12 +8,17 @@ typedef struct {
 
 void lamport_local(Node *n) {
 //@TODO 1 | Evento interno: C <- C + 1
+//? Regla 1 de Lamport: ¿qué le pasa al reloj en un evento interno?
+//- Súmale 1 al reloj del nodo: n->clock++ (n es un puntero, por eso ->).
     n->clock++; //§
 //@END
 }
 
 void lamport_send(Node *n, int *ts) {
 //@TODO 2 | Envío: incrementar y guardar en *ts el timestamp a enviar
+//? Enviar también es un evento, y además el mensaje debe llevar un timestamp. ¿Primero incrementas o primero copias?
+//- Primero incrementa el reloj (es un evento).
+//- Luego copia ese valor al lugar que apunta ts: *ts = n->clock.
     n->clock++; //§
     *ts = n->clock; //§
 //@END
@@ -21,6 +26,9 @@ void lamport_send(Node *n, int *ts) {
 
 void lamport_recv(Node *n, int ts_recv) {
 //@TODO 3 | Recepción: C <- max(C, T) + 1
+//? Al recibir, el reloj debe quedar por delante tanto de su propio pasado como del emisor. ¿Cómo combinas los dos valores?
+//- Si el ts recibido es mayor que tu reloj, tu reloj salta a ese valor (es el max; en C se hace con un if).
+//- Después, en cualquier caso, súmale 1.
     if (ts_recv > n->clock) //§
         n->clock = ts_recv; //§
     n->clock++; //§

@@ -11,13 +11,14 @@ const fallo = (curso, msg) => errores.push(`[${curso}] ${msg}`);
 
 function cargarCurso(dir) {
   const base = path.join(CURSOS_DIR, dir);
-  const curso = {}, ejercicios = [], tarjetas = [];
-  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas }, { filename: f });
+  const curso = {}, ejercicios = [], tarjetas = [], glosario = [];
+  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario }, { filename: f });
   if (!fs.existsSync(path.join(base, 'curso.js'))) { fallo(dir, 'falta curso.js'); return null; }
   correr(path.join(base, 'curso.js'));
   const ls = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.js')).sort().map(f => path.join(d, f)) : [];
   ls(path.join(base, 'ejercicios')).forEach(correr);
   if (fs.existsSync(path.join(base, 'tarjetas.js'))) correr(path.join(base, 'tarjetas.js'));
+  if (fs.existsSync(path.join(base, 'glosario.js'))) correr(path.join(base, 'glosario.js'));
   const id = curso.id || dir;
   /* validación: mensajes claros para quien agregue contenido */
   ['nombre'].forEach(k => { if (!curso[k]) fallo(id, `curso.js: falta "${k}"`); });
@@ -71,8 +72,14 @@ function cargarCurso(dir) {
       e.pruebas = { compilar: plan.compilar || [], pasos: plan.pasos || [], archivos };
     }
   }
+  const gids = new Set();
+  glosario.forEach(g => {
+    if (!g.id || !g.t || !g.def) fallo(id, `glosario ${g.id || '?'}: necesita id, t y def`);
+    if (gids.has(g.id)) fallo(id, `glosario ${g.id}: id repetido`); gids.add(g.id);
+  });
+  glosario.forEach(g => (g.ver || []).forEach(v => { if (!gids.has(v)) fallo(id, `glosario ${g.id}: "ver" apunta a ${v}, que no existe`); }));
   const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');
-  return { config: { ...curso, id, ejercicios, tarjetas }, modulos };
+  return { config: { ...curso, id, ejercicios, tarjetas, glosario }, modulos };
 }
 
 const dirs = fs.readdirSync(CURSOS_DIR).filter(d => fs.statSync(path.join(CURSOS_DIR, d)).isDirectory() && (todos || !d.startsWith('_'))).sort();
@@ -84,7 +91,7 @@ const read = f => fs.readFileSync(path.join(APP, f), 'utf8');
 const sinExports = js => js.replace(/if \(typeof module !== 'undefined'\) module\.exports[^\n]*/g, '');
 const js = [
   'const CURSOS = ' + JSON.stringify(cursos.map(c => c.config)) + ';',
-  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'),
+  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'), read('guia.js'),
   ...cursos.map(c => c.modulos),
   'activarCurso(S.curso); route(); syncPull();'
 ].join('\n');

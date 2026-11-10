@@ -19,6 +19,9 @@ void handle_node_recovery(int id);
 
 void on_heartbeat(int node_id) {
 //@TODO 1 | Implementar on_heartbeat
+//? Llega un heartbeat: actualiza la hora y revisa si el nodo estaba dado por muerto.
+//- nodes[id].last_heartbeat = time(NULL).
+//- Si no estaba vivo → is_alive = true y handle_node_recovery(id).
     nodes[node_id].last_heartbeat = time(NULL); //§
     if (!nodes[node_id].is_alive) { //§
         nodes[node_id].is_alive = true; //§
@@ -29,6 +32,9 @@ void on_heartbeat(int node_id) {
 
 void check_nodes(int num_nodes) {
 //@TODO 2 | Implementar check_nodes
+//? ¿Cómo sabes cuánto silencio lleva un nodo y cómo evitas avisar dos veces?
+//- now = time(NULL); para cada nodo: silencio = now − last_heartbeat.
+//- Si silencio > TIMEOUT y el nodo figuraba vivo → is_alive = false, imprime y handle_node_failure(i).
     time_t now = time(NULL);
     for (int i = 0; i < num_nodes; i++) {
         int silence = (int)(now - nodes[i].last_heartbeat); //§

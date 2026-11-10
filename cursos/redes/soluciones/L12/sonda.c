@@ -29,6 +29,9 @@ int main(int argc, char *argv[]) {
     for (int seq = 1; seq <= 5; seq++) {
         valor += 0.5f;
 //@TODO 1 | Regla de envío: incrementar el reloj y adjuntar ts
+//? Cada TELEM que envía la sonda es un evento de envío. ¿Qué le pasa al reloj y dónde va el ts en el mensaje?
+//- reloj++.
+//- snprintf("TELEM %s %d %.2f %d\n", id, seq, valor, reloj).
         reloj++; //§
         snprintf(msg, sizeof msg, "TELEM %s %d %.2f %d\n", id, seq, valor, reloj); //§
 //@END

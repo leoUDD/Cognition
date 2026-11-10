@@ -20,6 +20,12 @@ typedef struct {
 
 bool on_request_vote(RaftNode *n, const RequestVoteArgs *args) {
 //@TODO 1 | Implementar on_request_vote
+//? Piensa las reglas como filtros: cada if descarta un caso con return false.
+//- term del candidato < current_term → false.
+//- term mayor → actualiza current_term, voted_for = −1 y estado FOLLOWER (y sigue evaluando).
+//- Ya votó por otro en este term → false.
+//- Log del candidato menos actualizado (menor último term, o igual term y menor índice) → false.
+//- Si pasó todo: voted_for = candidato y true.
     if (args->term < n->current_term) return false; //§
     if (args->term > n->current_term) { //§
         n->current_term = args->term; //§

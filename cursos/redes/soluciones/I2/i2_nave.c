@@ -16,6 +16,11 @@ int sock;
 /* Stub RPC genérico */
 int rpc_call(const char *fn, const char *nave, float v, char *out, int n) {
 //@TODO 1 | Stub: CALL <fn> <nave> <valor>\n -> extraer lo que va después de RESULT
+//? Un stub hace parecer local una llamada remota. ¿Cuáles son sus 4 pasos?
+//- Serializar: snprintf("CALL %s %s %.1f\n", fn, nave, v).
+//- send() y recv() la respuesta; termina el string.
+//- Verifica que empiece con "RESULT " (strncmp de 7 caracteres).
+//- Copia lo que viene después (msg + 7) a out y quita el \n.
     char msg[128];
     snprintf(msg, sizeof msg, "CALL %s %s %.1f\n", fn, nave, v); //§
     send(sock, msg, strlen(msg), 0); //§
@@ -50,6 +55,10 @@ int main(int argc, char *argv[]) {
     const char *nave = argv[1];
     int p[2];
 //@TODO 2 | pipe + fork del sensor, conexión al cuartel
+//? Igual que en I1: el pipe va antes del fork, y la conexión al cuartel la hace el padre.
+//- pipe(p); if (fork() == 0) { close(p[0]); sensor(p[1]); }
+//- Padre: close(p[1]).
+//- socket + sockaddr_in + connect al puerto 8010.
     pipe(p); //§
     if (fork() == 0) { close(p[0]); sensor(p[1]); } //§
     close(p[1]); //§
@@ -62,6 +71,12 @@ int main(int argc, char *argv[]) {
     if (connect(sock, (struct sockaddr *)&srv, sizeof srv) < 0) { perror("connect"); return 1; } //§
 //@END
 //@TODO 3 | Validador: leer el pipe y llamar por RPC según las reglas
+//? El validador lee lecturas y decide cuándo pedir algo al cuartel. ¿Qué dos reglas hay?
+//- fdopen(p[0], "r") y while (fgets(...)).
+//- sscanf de vel, dist y comb.
+//- Si comb < 20 → rpc_call("solicitar_reabastecimiento", nave, comb, …) e imprime.
+//- Si dist < 50 → rpc_call("solicitar_ordenes", nave, dist, …) e imprime.
+//- Al final: fclose, close(sock), wait(NULL).
     FILE *in = fdopen(p[0], "r"); //§
     char linea[128], res[64];
     float vel, dist, comb;

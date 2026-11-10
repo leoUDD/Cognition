@@ -18,6 +18,10 @@ bool read_from_replica(int replica, const char *key, KVPair *out);       /* true
 
 bool put_quorum(const char *key, const char *value) {
 //@TODO 1 | Implementar put_quorum
+//? Escribir con quórum: ¿cuántos acks necesitas y cuándo puedes dejar de enviar?
+//- acks = 0; for cada réplica: si send_write devuelve true, acks++.
+//- Apenas acks ≥ W → return true.
+//- Si terminó el for → return false.
     int acks = 0;
     for (int i = 0; i < NREP; i++) {
         if (send_write(i, key, value)) acks++; //§
@@ -29,6 +33,11 @@ bool put_quorum(const char *key, const char *value) {
 
 bool get_quorum(const char *key, KVPair *result) {
 //@TODO 2 | Implementar get_quorum
+//? Leer de R réplicas y quedarte con la versión más nueva. ¿Qué haces con una réplica caída?
+//- for réplicas mientras count < R: si read_from_replica falla → continue.
+//- Si es la primera lectura o tiene mayor version → latest = tmp.
+//- count++.
+//- Si count < R → false; si no, *result = latest y true.
     int count = 0;
     KVPair latest;
     memset(&latest, 0, sizeof(latest));

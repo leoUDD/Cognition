@@ -24,6 +24,11 @@ int alerta_enviada = 0;
 /* HIJO: lee GATE_STATUS del nodo y reenvía al padre */
 void atender_nodo(int fd, int pfd) {
 //@TODO 1 | Leer líneas del socket y avisar al padre; al desconectar, INACTIVA
+//? Cada hijo atiende un nodo, pero la tabla la tiene el padre. ¿Cómo le cuenta el hijo cada cambio?
+//- fdopen(fd, "r"): también sirve para sockets y permite usar fgets.
+//- Por cada línea: sscanf("GATE_STATUS %31s %15s %ld") en un struct Cambio.
+//- write(pfd, &c, sizeof c): un struct de tamaño fijo por write es atómico.
+//- Cuando fgets devuelve NULL, el nodo se desconectó: manda un Cambio con estado "INACTIVA".
     FILE *in = fdopen(fd, "r");             /* fdopen también sirve para sockets */ //§
     char linea[128];
     Cambio c = { "", "" };
@@ -60,6 +65,12 @@ void alertar_laconia(int activas) {
 /* PADRE: actualizar tabla y decidir si alertar */
 void registrar(const Cambio *c) {
 //@TODO 2 | Agregación: último estado por gate; alerta al cruzar a >= 3 ACTIVA
+//? El padre guarda el ÚLTIMO estado de cada gate. ¿Cuándo debe avisar a Laconia sin repetir la alerta?
+//- Busca la gate en la tabla; si no está, agrégala.
+//- Reemplaza su estado por el nuevo.
+//- Cuenta cuántas están en "ACTIVA".
+//- Si activas ≥ 3 y aún no alertaste → alertar_laconia y alerta_enviada = 1.
+//- Si activas < 3 → alerta_enviada = 0 (para poder alertar de nuevo después).
     int i;
     for (i = 0; i < n_gates; i++) if (strcmp(gates[i].gate, c->gate) == 0) break; //§
     if (i == n_gates) { if (n_gates == MAX_GATES) return; n_gates++; } //§
@@ -93,6 +104,11 @@ int main(void) {
     printf("[HUB] escuchando en %d\n", PORT_HUB);
     fflush(stdout);
 //@TODO 3 | select() sobre el socket de escucha y la pipe de los hijos
+//? El padre tiene que vigilar dos cosas a la vez: nuevas conexiones y mensajes de sus hijos. ¿Qué función espera por varias a la vez?
+//- Loop: FD_ZERO; FD_SET(srv) y FD_SET(p[0]).
+//- select(max + 1, &rd, NULL, NULL, NULL).
+//- Si srv está listo: accept y fork (el hijo cierra srv y p[0], atiende y sale; el padre cierra cli).
+//- Si p[0] está listo: read de un Cambio y registrar(&c).
     while (1) {
         fd_set rd;
         FD_ZERO(&rd);

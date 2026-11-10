@@ -16,6 +16,11 @@ LogEntry log_[] = {
 
 void replay(int *clock, LogEntry *log, int n) {
 //@TODO 1 | Itera el log aplicando Lamport e imprime "evento N: C=valor"
+//? Fíjate que LOCAL, SEND y RECV terminan igual. ¿Qué tiene de especial RECV?
+//- for (i = 0; i < n; i++).
+//- Si es RECV y ts_recv > *clock → *clock = ts_recv (el max).
+//- Siempre: (*clock)++ (con paréntesis: sin ellos se mueve el puntero).
+//- printf("evento %d: C=%d\n", i + 1, *clock).
     for (int i = 0; i < n; i++) {
         if (log[i].type == RECV && log[i].ts_recv > *clock) //§
             *clock = log[i].ts_recv; //§

@@ -30,6 +30,10 @@ int main(void) {
     int abiertos = N;
     int conteo[N][3] = {{0}};
 //@TODO 1 | Crear N pipes y N hijos; cada hijo cierra lo que no usa
+//? 5 hijos, 5 pipes. Cada hijo escribe solo en el suyo. ¿Qué cierra cada hijo y qué cierra el padre?
+//- for i: pipe(pipes[i]).
+//- for i: fork; el hijo cierra todos los extremos de lectura y los de escritura ajenos (j ≠ i), y llama a modulo(i, pipes[i][1]).
+//- Padre: cierra todos los extremos de escritura.
     for (int i = 0; i < N; i++) pipe(pipes[i]); //§
     for (int i = 0; i < N; i++) {
         if (fork() == 0) {
@@ -43,6 +47,11 @@ int main(void) {
     for (int i = 0; i < N; i++) close(pipes[i][1]);     /* el padre solo lee */ //§
 //@END
 //@TODO 2 | Loop con select() hasta que todos los hijos cierren su pipe
+//? El padre espera mensajes de 5 pipes a la vez. ¿Qué pasa con el fd_set después de cada select?
+//- while (abiertos > 0): FD_ZERO y FD_SET de cada pipe abierta (select modifica el set: hay que rehacerlo cada vez).
+//- select(maxfd + 1, …).
+//- Para cada pipe con FD_ISSET: read de MSG_LEN bytes.
+//- Si read da 0: close, marca −1 y abiertos--. Si no: sscanf, cuenta por nivel e imprime con la hora.
     while (abiertos > 0) { //§
         fd_set rd;
         int maxfd = -1;
