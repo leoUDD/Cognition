@@ -27,6 +27,9 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   ok(w.eval('RUN.estado') === 'ok', 'ping al ejecutor: ' + w.eval('RUN.estado'));
   const ed = d.querySelector('#ed'); ok(ed && /TODO 3/.test(ed.value), 'editor con el esqueleto (solo TODO)');
   ok(d.querySelector('#gutter').textContent.split('\n').length === ed.value.split('\n').length, 'números de línea');
+  ok(d.querySelector('#edhl .tk-t') && d.querySelector('#edhl').textContent.trim() === ed.value.trim(), 'editor con colores: el texto resaltado coincide con el textarea');
+  escribir(ed.value + '\nint extra_color = 7;');
+  ok(/extra_color/.test(d.querySelector('#edhl').textContent) && [...d.querySelectorAll('#edhl .tk-n')].some(x => x.textContent === '7'), 'los colores se actualizan al escribir');
   click('[data-act=compilar]'); await esperarFin();
   ok(w.eval('RUN.ultimo.ok') === false && /pruebas que fallan/.test(d.querySelector('#resultados').textContent), 'esqueleto vacío: fallan las pruebas');
   const EX = w.eval("EXERCISES.find(e=>e.id==='L06')");

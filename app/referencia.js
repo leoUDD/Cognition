@@ -24,11 +24,19 @@ function refListado(q, compacta) {
   const grupos = [...new Set(lista.map(r => r.grupo || 'General'))];
   return grupos.map(g => `<section class="stack" style="gap:12px"><h2 class="ref-g">${esc(g)}</h2>${lista.filter(r => (r.grupo || 'General') === g).map(r => refEntrada(r, compacta)).join('')}</section>`).join('');
 }
+/* Qué significa cada color del código */
+function leyendaColores() {
+  const L = LANGS[CUR.lenguaje] || LANGS.c;
+  const it = [['k', 'if return', 'control'], ['t', 'int Node', 'tipos'], ['f', 'printf', 'funciones'], ['s', '"texto"', 'strings'], ['e', '%d \\n', 'formato'],
+    ['n', '42', 'números'], L.heur && ['m', 'AF_INET', 'constantes'], L.ptr && ['o', '-> & *', 'punteros'], L.pre && ['p', '#include', 'preprocesador'], ['c', '/* */', 'comentarios']].filter(Boolean);
+  return `<div class="leyenda" aria-label="Colores del código"><b class="eyebrow">Colores</b>${it.map(([c, ej, n]) => `<span><span class="tk-${c}">${esc(ej)}</span> ${n}</span>`).join('')}</div>`;
+}
 VIEWS.referencia = () => {
   const todos = CUR.referencia || [];
   return `<div class="stack"><div><h1>${esc(CUR.referenciaNombre || 'Referencia')}</h1>
   <p class="muted" style="max-width:62ch">Lo que necesitas recordar para escribir los ejercicios: la sintaxis básica y los <b>patrones</b> que se repiten en el curso. Bajo cada código, <b>Pieza por pieza</b> explica cada símbolo y función: qué es, para qué sirve y el error típico. Para empezar un ejercicio, identifica qué patrón usa y parte desde su esqueleto. Dentro de cada ejercicio también puedes abrir esto con el botón <b>${esc(CUR.referenciaNombre || 'Referencia')}</b>.</p></div>
   <div class="chips">${todos.map(r => `<a class="chipbtn" href="#ref-${r.id}" data-act="refIr" data-id="${r.id}">${esc(r.titulo)}</a>`).join('')}</div>
+  ${leyendaColores()}
   <input type="text" id="refq" placeholder="Buscar: printf, struct, socket, strcmp…" value="${esc(RF.q)}" autocomplete="off" aria-label="Buscar en la referencia" style="max-width:420px">
   ${refListado(RF.q, false)}</div>`;
 };

@@ -83,7 +83,8 @@ function editorHtml(ex) {
   return `<div class="card stack" style="gap:10px">
    <div class="row spread"><div class="row">${files.length > 1 ? files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}${borrador(ex, x) !== undefined ? ' •' : ''}</button>`).join('') : `<b class="mono">${esc(f.name)}</b>`}</div>${chipRunner()}</div>
    <div class="editor"><div class="gutter" id="gutter" aria-hidden="true">${Array.from({ length: Math.max(lineas, 1) }, (_, i) => i + 1).join('\n')}</div>
-   <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Editor de ${esc(f.name)}">${esc(textoEditor(ex, f))}</textarea></div>
+   <div class="ed-area"><pre class="ed-hl" id="edhl" aria-hidden="true">${highlight(textoEditor(ex, f), langOf(ex)) + '\n'}</pre>
+   <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Editor de ${esc(f.name)}">${esc(textoEditor(ex, f))}</textarea></div></div>
    <div class="row spread"><div class="row">
      <button class="btn primary" data-act="compilar" ${listo && !RUN.corriendo ? '' : 'disabled'}>${RUN.corriendo ? 'Compilando y probando…' : 'Compilar y probar'}</button>
      <button class="btn sm" data-act="edReset">Reiniciar ${esc(f.name)}</button></div>
@@ -115,6 +116,13 @@ function actualizarGutter() {
   const n = ed.value.split('\n').length;
   if (g.childElementCount !== n) g.textContent = Array.from({ length: n }, (_, i) => i + 1).join('\n');
   g.scrollTop = ed.scrollTop;
+  const hl = $('#edhl'); if (hl) { hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; }
+}
+/* Colores en el editor: un <pre> resaltado detrás del textarea transparente */
+function colorearEditor() {
+  const ed = $('#ed'), hl = $('#edhl'), ex = curEx(); if (!ed || !hl || !ex) return;
+  hl.innerHTML = highlight(ed.value, langOf(ex)) + '\n';
+  hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft;
 }
 async function compilarYProbar() {
   const ex = curEx(); if (!ex || RUN.corriendo) return;
@@ -150,7 +158,7 @@ Object.assign(ACT, {
 document.addEventListener('input', e => {
   if (e.target.id !== 'ed') return;
   const ex = curEx(); if (ex) guardarBorrador(ex, ex.files[EJ.file].name, e.target.value);
-  actualizarGutter();
+  colorearEditor(); actualizarGutter();
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'ed') actualizarGutter(); }, true);
 document.addEventListener('keydown', e => {

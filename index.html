@@ -13,6 +13,7 @@
   --paper:#f4f7fb; --grid:#dfe7f2; --card:#ffffff; --card-2:#eef3fa; --line:#cdd7e6;
   --ink:#13213c; --ink-soft:#4b5b7a; --accent:#2849d6; --accent-ink:#ffffff; --accent-soft:#e2e9ff;
   --good:#17804a; --good-soft:#dff3e8; --bad:#c42b3a; --bad-soft:#fbe4e7; --warn:#a56500; --warn-soft:#fff0d3;
+  --hl-c:#6b7a96; --hl-s:#17804a; --hl-e:#0a6b3c; --hl-p:#6d28d9; --hl-k:#a626a4; --hl-t:#0b7a85; --hl-f:#2849d6; --hl-m:#9a5b00; --hl-n:#c2410c; --hl-o:#d01f3c;
   --code-bg:#eef2f9; --shadow:0 1px 0 rgba(19,33,60,.05),0 6px 18px -10px rgba(19,33,60,.25);
   --f-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif; --f-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
 }
@@ -20,11 +21,13 @@
   --paper:#0d1426; --grid:#18233f; --card:#141e36; --card-2:#1a2646; --line:#2a3960;
   --ink:#e7edfb; --ink-soft:#9fadcc; --accent:#7ea2ff; --accent-ink:#0a1228; --accent-soft:#1e2c55;
   --good:#52c98c; --good-soft:#12301f; --bad:#ff7d8a; --bad-soft:#3a1820; --warn:#e8b866; --warn-soft:#33270f;
+  --hl-c:#8494b8; --hl-s:#8ce99a; --hl-e:#c3fae8; --hl-p:#b197fc; --hl-k:#f0a6f5; --hl-t:#66d9e8; --hl-f:#91a7ff; --hl-m:#ffd43b; --hl-n:#ffa94d; --hl-o:#ff8787;
   --code-bg:#0a1122; --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.6); color-scheme:dark;}}
 :root[data-theme="dark"]{
   --paper:#0d1426; --grid:#18233f; --card:#141e36; --card-2:#1a2646; --line:#2a3960;
   --ink:#e7edfb; --ink-soft:#9fadcc; --accent:#7ea2ff; --accent-ink:#0a1228; --accent-soft:#1e2c55;
   --good:#52c98c; --good-soft:#12301f; --bad:#ff7d8a; --bad-soft:#3a1820; --warn:#e8b866; --warn-soft:#33270f;
+  --hl-c:#8494b8; --hl-s:#8ce99a; --hl-e:#c3fae8; --hl-p:#b197fc; --hl-k:#f0a6f5; --hl-t:#66d9e8; --hl-f:#91a7ff; --hl-m:#ffd43b; --hl-n:#ffa94d; --hl-o:#ff8787;
   --code-bg:#0a1122; --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.6); color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -110,7 +113,9 @@ svg.diag{display:block;max-width:none}
 
 /* Código */
 pre.code{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto;font:13.2px/1.55 var(--f-mono);tab-size:4}
-.tk-c{color:var(--ink-soft);font-style:italic}.tk-s{color:var(--good)}.tk-p{color:var(--warn)}.tk-k{color:var(--accent);font-weight:600}.tk-n{color:var(--bad)}
+.tk-c{color:var(--hl-c);font-style:italic}.tk-s{color:var(--hl-s)}.tk-e{color:var(--hl-e);font-weight:600}.tk-p{color:var(--hl-p)}
+.tk-k{color:var(--hl-k);font-weight:600}.tk-t{color:var(--hl-t)}.tk-f{color:var(--hl-f)}.tk-m{color:var(--hl-m)}.tk-n{color:var(--hl-n)}.tk-o{color:var(--hl-o);font-weight:700}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;font:12.5px var(--f-mono);align-items:center}.leyenda span{white-space:nowrap}
 .ex-list .card{display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left}.ex-list .card:hover{border-color:var(--accent)}
 .timer{font:700 1.5rem var(--f-mono)}.timer.over{color:var(--bad)}
 .rubric label{display:flex;gap:10px;align-items:flex-start;padding:7px 4px;border-bottom:1px dashed var(--line);cursor:pointer}
@@ -146,7 +151,12 @@ table.t{border-collapse:collapse;width:100%}table.t td,table.t th{border:1px sol
 /* Editor en pantalla */
 .editor{display:grid;grid-template-columns:auto 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--code-bg);height:min(62vh,560px)}
 .editor .gutter{font:13.2px/1.55 var(--f-mono);color:var(--ink-soft);text-align:right;padding:12px 8px 12px 12px;white-space:pre;overflow:hidden;user-select:none;border-right:1px solid var(--line);background:var(--card-2)}
-.editor textarea{font:13.2px/1.55 var(--f-mono);border:0;border-radius:0;background:transparent;padding:12px;resize:none;width:100%;height:100%;max-width:none;tab-size:4;white-space:pre;overflow:auto;color:var(--ink)}
+.editor .ed-area{position:relative;min-width:0;height:100%}
+.editor .ed-hl,.editor textarea{font:13.2px/1.55 var(--f-mono);padding:12px;margin:0;tab-size:4;white-space:pre;letter-spacing:0;word-spacing:0}
+.editor .ed-hl{position:absolute;inset:0;overflow:hidden;pointer-events:none;color:var(--ink);padding-bottom:60px}
+.editor .ed-hl span{font-weight:inherit!important;font-style:normal!important}
+.editor textarea{position:absolute;inset:0;border:0;border-radius:0;background:transparent;resize:none;width:100%;height:100%;max-width:none;overflow:auto;color:transparent;caret-color:var(--ink);-webkit-text-fill-color:transparent}
+.editor textarea::selection{background:color-mix(in srgb,var(--accent) 30%,transparent);-webkit-text-fill-color:transparent}
 .editor textarea:focus{outline:none}.editor:focus-within{outline:3px solid var(--accent);outline-offset:1px}
 .resumen{padding:10px 14px;border-radius:8px;font-size:.95rem}.resumen.ok{background:var(--good-soft);color:var(--good)}.resumen.bad{background:var(--bad-soft);color:var(--bad)}
 .paso{border-top:1px dashed var(--line);padding:8px 0}.checks{list-style:none;margin:6px 0 0;padding:0}.checks li{padding:2px 0;font-size:.92rem}
@@ -294,28 +304,59 @@ function calificarRespuesta(texto, claves) {
 /* Calificación sugerida a partir de la fracción de ideas cubiertas */
 const notaDe = frac => frac >= 0.85 ? 'good' : frac >= 0.5 ? 'hard' : 'again';
 
-/* ---- Resaltado de sintaxis (multi-lenguaje) ---- */
+/* ---- Resaltado de sintaxis (multi-lenguaje) ----
+   Clases: c comentario · s string · e %d y \n dentro de strings · p preprocesador · k control · t tipo
+           f función · m constante (MAYÚSCULAS) · n número · o operadores de punteros (-> & *) */
 const LANGS = {
-  c: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: /^[ \t]*#\w+/m, kw: 'int char void float double long short bool struct typedef enum const unsigned signed static extern return if else for while do switch case break default sizeof continue goto NULL' },
-  cpp: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: /^[ \t]*#\w+/m, kw: 'int char void float double long bool auto class struct public private protected virtual template typename namespace using const static return if else for while do switch case break default new delete nullptr this true false' },
-  java: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, kw: 'int char void float double long boolean class interface extends implements public private protected static final new return if else for while do switch case break default this null true false import package try catch throw throws' },
-  js: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, kw: 'const let var function return if else for while do switch case break default new class extends this null undefined true false async await import export from of in typeof' },
-  python: { com: /#[^\n]*/, kw: 'def return if elif else for while in not and or is None True False class import from as with try except finally raise lambda yield pass break continue global nonlocal print' },
-  sql: { com: /--[^\n]*|\/\*[\s\S]*?\*\//, kw: 'select from where group by order having join left right inner outer on as insert into values update set delete create table primary key foreign references not null and or in is distinct count sum avg min max limit union' , ci: true }
+  c: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: true, heur: true, ptr: true,
+       kw: 'return if else for while do switch case break default sizeof continue goto',
+       ty: 'int char void float double long short bool struct typedef enum union const unsigned signed static extern volatile register size_t ssize_t pid_t time_t socklen_t fd_set FILE' },
+  cpp: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: true, heur: true, ptr: true,
+       kw: 'return if else for while do switch case break default new delete this true false nullptr public private protected virtual template typename namespace using',
+       ty: 'int char void float double long bool auto class struct const static unsigned size_t string vector' },
+  java: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, heur: true,
+       kw: 'new return if else for while do switch case break default this null true false import package try catch throw throws extends implements public private protected static final',
+       ty: 'int char void float double long boolean class interface String' },
+  js: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, heur: true,
+       kw: 'return if else for while do switch case break default new this null undefined true false async await import export from of in typeof',
+       ty: 'const let var function class extends' },
+  python: { com: /#[^\n]*/, heur: true,
+       kw: 'def return if elif else for while in not and or is None True False class import from as with try except finally raise lambda yield pass break continue global nonlocal',
+       ty: 'int float str bool list dict tuple set bytes' },
+  sql: { com: /--[^\n]*|\/\*[\s\S]*?\*\//, ci: true,
+       kw: 'select from where group by order having join left right inner outer on as insert into values update set delete create table primary key foreign references not null and or in is distinct limit union',
+       ty: 'int integer varchar char text date timestamp boolean serial numeric' }
 };
+const HL_RE = {};
+function hlRegex(lang) {
+  if (HL_RE[lang]) return HL_RE[lang];
+  const L = LANGS[lang] || LANGS.c, pal = w => '\\b(?:' + w.split(' ').join('|') + ')\\b', alt = [];
+  alt.push(['c', L.com.source]);
+  alt.push(['s', '"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'']);
+  if (L.pre) { alt.push(['p', '^[ \\t]*#\\s*\\w+']); alt.push(['s', '(?<=#\\s*include\\s*)<[^>\\n]+>']); }
+  alt.push(['k', pal(L.kw)]);
+  if (L.ty) alt.push(['t', pal(L.ty) + (L.heur ? '|\\b\\w+_t\\b' : '')]);
+  alt.push(['f', '\\b[A-Za-z_]\\w*(?=\\s*\\()']);
+  if (L.heur) { alt.push(['m', '\\b[A-Z][A-Z0-9_]+\\b']); alt.push(['t', '\\b[A-Z][a-z]\\w*\\b']); }
+  alt.push(['n', '\\b(?:0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?[fFlLuU]?)\\b']);
+  if (L.ptr) alt.push(['o', '->|(?<=^|[(),=\\s!])&(?=[\\w(])|\\*(?=[\\w()])']);  /* & y * pegados a un nombre: punteros */
+  const re = new RegExp(alt.map(a => '(' + a[1] + ')').join('|'), 'g' + (L.ci ? 'i' : '') + 'm');
+  return (HL_RE[lang] = { re, cls: alt.map(a => a[0]) });
+}
+/* Dentro de un string: resalta %d, %.2f, %15s… y \n, \0 */
+function hlString(raw) {
+  return raw.replace(/%%|%[-+ 0#]*\d*(?:\.\d+)?(?:hh|h|ll|l|z)?[diouxXfFeEgGcsp]|\\[nrt0\\'"]|([^%\\]+|[%\\])/g,
+    (m, txt) => txt !== undefined ? esc(m) : `<span class="tk-e">${esc(m)}</span>`);
+}
 function highlight(code, lang) {
-  const L = LANGS[lang] || LANGS.c;
-  const parts = [L.com.source, '"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\''];
-  if (L.pre) parts.push(L.pre.source);
-  parts.push('\\b(?:' + L.kw.split(' ').join('|') + ')\\b', '\\b\\d+(?:\\.\\d+)?\\b');
-  const re = new RegExp(parts.map(p => '(' + p + ')').join('|'), 'g' + (L.ci ? 'i' : '') + (L.pre ? 'm' : ''));
+  const { re, cls } = hlRegex(lang);
+  re.lastIndex = 0;
   let out = '', last = 0, m;
   while ((m = re.exec(code))) {
     if (!m[0]) { re.lastIndex++; continue; }
     out += esc(code.slice(last, m.index));
-    const i = m.slice(1).findIndex(x => x !== undefined);
-    const cls = L.pre ? ['c', 's', 'p', 'k', 'n'][i] : ['c', 's', 'k', 'n'][i];
-    out += `<span class="tk-${cls}">${esc(m[0])}</span>`;
+    const c = cls[m.slice(1).findIndex(x => x !== undefined)];
+    out += `<span class="tk-${c}">${c === 's' && /^["']/.test(m[0]) ? hlString(m[0]) : esc(m[0])}</span>`;
     last = m.index + m[0].length;
   }
   return out + esc(code.slice(last));
@@ -829,7 +870,8 @@ function editorHtml(ex) {
   return `<div class="card stack" style="gap:10px">
    <div class="row spread"><div class="row">${files.length > 1 ? files.map((x, i) => `<button class="opt ${EJ.file === i ? 'on' : ''}" data-act="exFile" data-i="${i}">${esc(x.name)}${borrador(ex, x) !== undefined ? ' •' : ''}</button>`).join('') : `<b class="mono">${esc(f.name)}</b>`}</div>${chipRunner()}</div>
    <div class="editor"><div class="gutter" id="gutter" aria-hidden="true">${Array.from({ length: Math.max(lineas, 1) }, (_, i) => i + 1).join('\n')}</div>
-   <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Editor de ${esc(f.name)}">${esc(textoEditor(ex, f))}</textarea></div>
+   <div class="ed-area"><pre class="ed-hl" id="edhl" aria-hidden="true">${highlight(textoEditor(ex, f), langOf(ex)) + '\n'}</pre>
+   <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Editor de ${esc(f.name)}">${esc(textoEditor(ex, f))}</textarea></div></div>
    <div class="row spread"><div class="row">
      <button class="btn primary" data-act="compilar" ${listo && !RUN.corriendo ? '' : 'disabled'}>${RUN.corriendo ? 'Compilando y probando…' : 'Compilar y probar'}</button>
      <button class="btn sm" data-act="edReset">Reiniciar ${esc(f.name)}</button></div>
@@ -861,6 +903,13 @@ function actualizarGutter() {
   const n = ed.value.split('\n').length;
   if (g.childElementCount !== n) g.textContent = Array.from({ length: n }, (_, i) => i + 1).join('\n');
   g.scrollTop = ed.scrollTop;
+  const hl = $('#edhl'); if (hl) { hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; }
+}
+/* Colores en el editor: un <pre> resaltado detrás del textarea transparente */
+function colorearEditor() {
+  const ed = $('#ed'), hl = $('#edhl'), ex = curEx(); if (!ed || !hl || !ex) return;
+  hl.innerHTML = highlight(ed.value, langOf(ex)) + '\n';
+  hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft;
 }
 async function compilarYProbar() {
   const ex = curEx(); if (!ex || RUN.corriendo) return;
@@ -896,7 +945,7 @@ Object.assign(ACT, {
 document.addEventListener('input', e => {
   if (e.target.id !== 'ed') return;
   const ex = curEx(); if (ex) guardarBorrador(ex, ex.files[EJ.file].name, e.target.value);
-  actualizarGutter();
+  colorearEditor(); actualizarGutter();
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'ed') actualizarGutter(); }, true);
 document.addEventListener('keydown', e => {
@@ -1066,11 +1115,19 @@ function refListado(q, compacta) {
   const grupos = [...new Set(lista.map(r => r.grupo || 'General'))];
   return grupos.map(g => `<section class="stack" style="gap:12px"><h2 class="ref-g">${esc(g)}</h2>${lista.filter(r => (r.grupo || 'General') === g).map(r => refEntrada(r, compacta)).join('')}</section>`).join('');
 }
+/* Qué significa cada color del código */
+function leyendaColores() {
+  const L = LANGS[CUR.lenguaje] || LANGS.c;
+  const it = [['k', 'if return', 'control'], ['t', 'int Node', 'tipos'], ['f', 'printf', 'funciones'], ['s', '"texto"', 'strings'], ['e', '%d \\n', 'formato'],
+    ['n', '42', 'números'], L.heur && ['m', 'AF_INET', 'constantes'], L.ptr && ['o', '-> & *', 'punteros'], L.pre && ['p', '#include', 'preprocesador'], ['c', '/* */', 'comentarios']].filter(Boolean);
+  return `<div class="leyenda" aria-label="Colores del código"><b class="eyebrow">Colores</b>${it.map(([c, ej, n]) => `<span><span class="tk-${c}">${esc(ej)}</span> ${n}</span>`).join('')}</div>`;
+}
 VIEWS.referencia = () => {
   const todos = CUR.referencia || [];
   return `<div class="stack"><div><h1>${esc(CUR.referenciaNombre || 'Referencia')}</h1>
   <p class="muted" style="max-width:62ch">Lo que necesitas recordar para escribir los ejercicios: la sintaxis básica y los <b>patrones</b> que se repiten en el curso. Bajo cada código, <b>Pieza por pieza</b> explica cada símbolo y función: qué es, para qué sirve y el error típico. Para empezar un ejercicio, identifica qué patrón usa y parte desde su esqueleto. Dentro de cada ejercicio también puedes abrir esto con el botón <b>${esc(CUR.referenciaNombre || 'Referencia')}</b>.</p></div>
   <div class="chips">${todos.map(r => `<a class="chipbtn" href="#ref-${r.id}" data-act="refIr" data-id="${r.id}">${esc(r.titulo)}</a>`).join('')}</div>
+  ${leyendaColores()}
   <input type="text" id="refq" placeholder="Buscar: printf, struct, socket, strcmp…" value="${esc(RF.q)}" autocomplete="off" aria-label="Buscar en la referencia" style="max-width:420px">
   ${refListado(RF.q, false)}</div>`;
 };

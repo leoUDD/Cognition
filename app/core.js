@@ -72,28 +72,59 @@ function calificarRespuesta(texto, claves) {
 /* Calificación sugerida a partir de la fracción de ideas cubiertas */
 const notaDe = frac => frac >= 0.85 ? 'good' : frac >= 0.5 ? 'hard' : 'again';
 
-/* ---- Resaltado de sintaxis (multi-lenguaje) ---- */
+/* ---- Resaltado de sintaxis (multi-lenguaje) ----
+   Clases: c comentario · s string · e %d y \n dentro de strings · p preprocesador · k control · t tipo
+           f función · m constante (MAYÚSCULAS) · n número · o operadores de punteros (-> & *) */
 const LANGS = {
-  c: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: /^[ \t]*#\w+/m, kw: 'int char void float double long short bool struct typedef enum const unsigned signed static extern return if else for while do switch case break default sizeof continue goto NULL' },
-  cpp: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: /^[ \t]*#\w+/m, kw: 'int char void float double long bool auto class struct public private protected virtual template typename namespace using const static return if else for while do switch case break default new delete nullptr this true false' },
-  java: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, kw: 'int char void float double long boolean class interface extends implements public private protected static final new return if else for while do switch case break default this null true false import package try catch throw throws' },
-  js: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, kw: 'const let var function return if else for while do switch case break default new class extends this null undefined true false async await import export from of in typeof' },
-  python: { com: /#[^\n]*/, kw: 'def return if elif else for while in not and or is None True False class import from as with try except finally raise lambda yield pass break continue global nonlocal print' },
-  sql: { com: /--[^\n]*|\/\*[\s\S]*?\*\//, kw: 'select from where group by order having join left right inner outer on as insert into values update set delete create table primary key foreign references not null and or in is distinct count sum avg min max limit union' , ci: true }
+  c: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: true, heur: true, ptr: true,
+       kw: 'return if else for while do switch case break default sizeof continue goto',
+       ty: 'int char void float double long short bool struct typedef enum union const unsigned signed static extern volatile register size_t ssize_t pid_t time_t socklen_t fd_set FILE' },
+  cpp: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: true, heur: true, ptr: true,
+       kw: 'return if else for while do switch case break default new delete this true false nullptr public private protected virtual template typename namespace using',
+       ty: 'int char void float double long bool auto class struct const static unsigned size_t string vector' },
+  java: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, heur: true,
+       kw: 'new return if else for while do switch case break default this null true false import package try catch throw throws extends implements public private protected static final',
+       ty: 'int char void float double long boolean class interface String' },
+  js: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, heur: true,
+       kw: 'return if else for while do switch case break default new this null undefined true false async await import export from of in typeof',
+       ty: 'const let var function class extends' },
+  python: { com: /#[^\n]*/, heur: true,
+       kw: 'def return if elif else for while in not and or is None True False class import from as with try except finally raise lambda yield pass break continue global nonlocal',
+       ty: 'int float str bool list dict tuple set bytes' },
+  sql: { com: /--[^\n]*|\/\*[\s\S]*?\*\//, ci: true,
+       kw: 'select from where group by order having join left right inner outer on as insert into values update set delete create table primary key foreign references not null and or in is distinct limit union',
+       ty: 'int integer varchar char text date timestamp boolean serial numeric' }
 };
+const HL_RE = {};
+function hlRegex(lang) {
+  if (HL_RE[lang]) return HL_RE[lang];
+  const L = LANGS[lang] || LANGS.c, pal = w => '\\b(?:' + w.split(' ').join('|') + ')\\b', alt = [];
+  alt.push(['c', L.com.source]);
+  alt.push(['s', '"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'']);
+  if (L.pre) { alt.push(['p', '^[ \\t]*#\\s*\\w+']); alt.push(['s', '(?<=#\\s*include\\s*)<[^>\\n]+>']); }
+  alt.push(['k', pal(L.kw)]);
+  if (L.ty) alt.push(['t', pal(L.ty) + (L.heur ? '|\\b\\w+_t\\b' : '')]);
+  alt.push(['f', '\\b[A-Za-z_]\\w*(?=\\s*\\()']);
+  if (L.heur) { alt.push(['m', '\\b[A-Z][A-Z0-9_]+\\b']); alt.push(['t', '\\b[A-Z][a-z]\\w*\\b']); }
+  alt.push(['n', '\\b(?:0x[0-9a-fA-F]+|\\d+(?:\\.\\d+)?[fFlLuU]?)\\b']);
+  if (L.ptr) alt.push(['o', '->|(?<=^|[(),=\\s!])&(?=[\\w(])|\\*(?=[\\w()])']);  /* & y * pegados a un nombre: punteros */
+  const re = new RegExp(alt.map(a => '(' + a[1] + ')').join('|'), 'g' + (L.ci ? 'i' : '') + 'm');
+  return (HL_RE[lang] = { re, cls: alt.map(a => a[0]) });
+}
+/* Dentro de un string: resalta %d, %.2f, %15s… y \n, \0 */
+function hlString(raw) {
+  return raw.replace(/%%|%[-+ 0#]*\d*(?:\.\d+)?(?:hh|h|ll|l|z)?[diouxXfFeEgGcsp]|\\[nrt0\\'"]|([^%\\]+|[%\\])/g,
+    (m, txt) => txt !== undefined ? esc(m) : `<span class="tk-e">${esc(m)}</span>`);
+}
 function highlight(code, lang) {
-  const L = LANGS[lang] || LANGS.c;
-  const parts = [L.com.source, '"(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\''];
-  if (L.pre) parts.push(L.pre.source);
-  parts.push('\\b(?:' + L.kw.split(' ').join('|') + ')\\b', '\\b\\d+(?:\\.\\d+)?\\b');
-  const re = new RegExp(parts.map(p => '(' + p + ')').join('|'), 'g' + (L.ci ? 'i' : '') + (L.pre ? 'm' : ''));
+  const { re, cls } = hlRegex(lang);
+  re.lastIndex = 0;
   let out = '', last = 0, m;
   while ((m = re.exec(code))) {
     if (!m[0]) { re.lastIndex++; continue; }
     out += esc(code.slice(last, m.index));
-    const i = m.slice(1).findIndex(x => x !== undefined);
-    const cls = L.pre ? ['c', 's', 'p', 'k', 'n'][i] : ['c', 's', 'k', 'n'][i];
-    out += `<span class="tk-${cls}">${esc(m[0])}</span>`;
+    const c = cls[m.slice(1).findIndex(x => x !== undefined)];
+    out += `<span class="tk-${c}">${c === 's' && /^["']/.test(m[0]) ? hlString(m[0]) : esc(m[0])}</span>`;
     last = m.index + m[0].length;
   }
   return out + esc(code.slice(last));
