@@ -168,3 +168,6 @@ details.conceptos summary{cursor:pointer}
 @media(max-width:620px){.comparar{grid-template-columns:1fr}}
 .cmp-col{display:flex;flex-direction:column;gap:6px}
 .cmp-mia{white-space:pre-wrap;background:var(--card-2);border-radius:8px;padding:10px 12px;font-size:.95rem;min-height:3em}
+
+.rate .btn.rec{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.autocal{border-left:4px solid var(--line)}.autocal.good{border-left-color:var(--good)}.autocal.hard{border-left-color:var(--warn)}.autocal.again{border-left-color:var(--bad)}

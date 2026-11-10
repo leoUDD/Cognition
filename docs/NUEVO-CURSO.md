@@ -119,6 +119,19 @@ Object.assign(pruebas, {
 
 `tarjetas.push({ id, t: '<id de tema>', q: '<pregunta HTML>', a: '<respuesta HTML>' })`.
 
+**Calificación automática (`claves.js`):** si el estudiante escribe su respuesta, se compara con las ideas clave de la tarjeta y se sugiere la nota. Si cubre el 85 % o más, *Bien*; desde el 50 %, *Difícil*; bajo eso, *Otra vez*, y la tarjeta vuelve en la misma sesión.
+
+```js
+Object.assign(claves, {
+  c03: [['Recepción: max(L, T) + 1', 'max|maximo'], ['Envío: +1 y el mensaje lleva el reloj', 'mensaje lleva|adjunta|envia el reloj']]
+});
+```
+
+- Cada idea es `[etiqueta visible, "alternativa1|alternativa2"]`. Dentro de una alternativa, **todas** las palabras deben aparecer, en cualquier orden.
+- Se compara sin tildes ni mayúsculas. Las palabras de más de 3 letras se buscan por raíz ("cerr" acepta cerrar y cerrado). Las cortas o con símbolos (`max`, `+1`, `fd[0]`) se buscan tal cual.
+- Escribe varias alternativas por idea: sinónimos, otra forma de conjugar, el término en inglés.
+- `node test/claves.test.cjs` verifica que la **respuesta oficial** de cada tarjeta saque *Bien* con sus propias claves.
+
 ## Módulos (opcional, avanzado)
 
 Un archivo en `modulos/` puede registrar una pestaña propia:

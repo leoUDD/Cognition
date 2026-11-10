@@ -11,14 +11,15 @@ const fallo = (curso, msg) => errores.push(`[${curso}] ${msg}`);
 
 function cargarCurso(dir) {
   const base = path.join(CURSOS_DIR, dir);
-  const curso = {}, ejercicios = [], tarjetas = [], glosario = [];
-  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario }, { filename: f });
+  const curso = {}, ejercicios = [], tarjetas = [], glosario = [], claves = {};
+  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario, claves }, { filename: f });
   if (!fs.existsSync(path.join(base, 'curso.js'))) { fallo(dir, 'falta curso.js'); return null; }
   correr(path.join(base, 'curso.js'));
   const ls = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.js')).sort().map(f => path.join(d, f)) : [];
   ls(path.join(base, 'ejercicios')).forEach(correr);
   if (fs.existsSync(path.join(base, 'tarjetas.js'))) correr(path.join(base, 'tarjetas.js'));
   if (fs.existsSync(path.join(base, 'glosario.js'))) correr(path.join(base, 'glosario.js'));
+  if (fs.existsSync(path.join(base, 'claves.js'))) correr(path.join(base, 'claves.js'));
   const id = curso.id || dir;
   /* validación: mensajes claros para quien agregue contenido */
   ['nombre'].forEach(k => { if (!curso[k]) fallo(id, `curso.js: falta "${k}"`); });
@@ -72,6 +73,15 @@ function cargarCurso(dir) {
       e.pruebas = { compilar: plan.compilar || [], pasos: plan.pasos || [], archivos };
     }
   }
+  /* ideas clave de las tarjetas (claves.js o campo "claves" en la tarjeta) */
+  Object.entries(claves).forEach(([tid, cl]) => {
+    const t = tarjetas.find(x => x.id === tid);
+    if (!t) { fallo(id, `claves.js: no existe la tarjeta ${tid}`); return; }
+    t.claves = cl;
+  });
+  tarjetas.forEach(t => (t.claves || []).forEach((c, i) => {
+    if (!Array.isArray(c) || c.length !== 2 || !c[0] || !c[1]) fallo(id, `tarjeta ${t.id}: la idea clave ${i + 1} debe ser [etiqueta, "alt1|alt2"]`);
+  }));
   const gids = new Set();
   glosario.forEach(g => {
     if (!g.id || !g.t || !g.def) fallo(id, `glosario ${g.id || '?'}: necesita id, t y def`);

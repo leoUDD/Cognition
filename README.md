@@ -7,7 +7,7 @@ Un motor genérico donde **cada ramo es una carpeta de contenido**.
 - **Ejercicios:** enunciado, tres niveles de ayuda (líneas clave ocultas → solo los TODO → sin esqueleto), cronómetro, pistas, solución explicada y autoevaluación con rúbrica o autocorrección.
 - **Guía paso a paso:** para quedarse en blanco: método general, pregunta guía y pasos por cada TODO, y revelar el código línea por línea como último recurso.
 - **Glosario:** los conceptos del ramo se marcan en los textos y se abren al tocarlos; cada ejercicio lista los que usa.
-- **Tarjetas:** teoría con repetición espaciada; tu respuesta queda al lado de la solución para compararlas.
+- **Tarjetas:** teoría con repetición espaciada. Si escribes tu respuesta, se compara con las ideas clave y se califica sola; si te falta algo, la tarjeta vuelve en la misma sesión.
 - **En pantalla + compilar:** editor con números de línea; con el ejecutor local en WSL compila con gcc y corre las pruebas del ejercicio (tu servidor contra un cliente de prueba, tu cliente contra el servidor de referencia, salida esperada…).
 - **Módulos:** pestañas propias de un ramo (por ejemplo, Relojes y Drills en Redes).
 - **Sincronización:** el mismo progreso en el PC y el celular, con un código.

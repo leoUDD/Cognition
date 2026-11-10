@@ -54,6 +54,24 @@ function staticDiagram(d) {
   });
   return s + '</svg>';
 }
+/* ---- Calificación de respuestas por ideas clave ---- */
+/* Primero se quitan las etiquetas (<br> = espacio, <b>C</b>onsistency = Consistency) y DESPUÉS se decodifican &lt; &gt; */
+const normTxt = s => String(s || '').replace(/<br\s*\/?>|<\/(p|li|div)>/gi, ' ').replace(/<[^>]+>/g, '')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+/* claves: [[etiqueta, "alt1|alt2 con varias palabras"], ...]. Devuelve [{label, ok}] */
+function calificarRespuesta(texto, claves) {
+  const t = ' ' + normTxt(texto).replace(/\s+/g, ' ') + ' ', tokens = t.split(/[^a-z0-9_]+/).filter(Boolean);
+  const palabraOk = w => {
+    w = normTxt(w);
+    if (w.length <= 3 || /[^a-z0-9]/.test(w)) return t.includes(w);          /* corta o con símbolos: tal cual */
+    const raiz = w.slice(0, Math.max(4, Math.ceil(w.length * 0.75)));        /* larga: por raíz */
+    return tokens.some(k => k.startsWith(raiz));
+  };
+  return claves.map(([label, alts]) => ({ label, ok: alts.split('|').some(a => a.trim().split(/\s+/).filter(Boolean).every(palabraOk)) }));
+}
+/* Calificación sugerida a partir de la fracción de ideas cubiertas */
+const notaDe = frac => frac >= 0.85 ? 'good' : frac >= 0.5 ? 'hard' : 'again';
+
 /* ---- Resaltado de sintaxis (multi-lenguaje) ---- */
 const LANGS = {
   c: { com: /\/\*[\s\S]*?\*\/|\/\/[^\n]*/, pre: /^[ \t]*#\w+/m, kw: 'int char void float double long short bool struct typedef enum const unsigned signed static extern return if else for while do switch case break default sizeof continue goto NULL' },
@@ -81,4 +99,4 @@ function highlight(code, lang) {
   return out + esc(code.slice(last));
 }
 
-if (typeof module !== 'undefined') module.exports = { parseCode, renderCode, countTodos, countKeys, staticDiagram, highlight };
+if (typeof module !== 'undefined') module.exports = { parseCode, renderCode, countTodos, countKeys, staticDiagram, highlight, calificarRespuesta, notaDe };

@@ -225,6 +225,20 @@ function buildQueue(free) {
   const nw = shuffle(pool.filter(c => !P.cards[c.id])).slice(0, 10);
   return shuffle(due.concat(nw)).map(c => c.id).slice(0, 20);
 }
+const NOTA_TXT = { again: 'Otra vez', hard: 'Difícil', good: 'Bien', easy: 'Fácil' };
+const cuandoTxt = d => d === 0 ? 'vuelve en esta sesión' : d === 1 ? 'vuelve mañana' : 'vuelve en ' + d + ' días';
+function calificacionHtml(c) {
+  const botones = (sug) => `<div class="rate">${['again', 'hard', 'good', 'easy'].map(r => { const ns = nextState(c.id, r); return `<button class="btn ${r === sug ? 'rec' : ''}" data-act="cRate" data-r="${r}">${NOTA_TXT[r]}<small>${ns.days === 0 ? 'hoy' : ns.days + ' d'}</small></button>`; }).join('')}</div>`;
+  const cal = CV.cal;
+  if (!cal) return `${c.claves ? '<p class="small muted" style="margin:0">Si escribes tu respuesta antes de revelar, se califica sola.</p>' : ''}${botones('')}`;
+  const ok = cal.res.filter(x => x.ok).length, ns = nextState(c.id, cal.nota);
+  return `<div class="card stack autocal ${cal.nota}" style="gap:8px">
+    <div class="row spread"><b>Calificación automática: ${ok} de ${cal.res.length} ideas clave</b><span class="chip ${cal.nota === 'good' ? 'good' : cal.nota === 'hard' ? 'warn' : 'bad'}">${NOTA_TXT[cal.nota]}</span></div>
+    <ul class="checks">${cal.res.map(x => `<li class="${x.ok ? 'ok' : 'bad'}"><span class="res ${x.ok ? 'ok' : 'bad'}">${x.ok ? '✓' : '✗'}</span> ${esc(x.label)}${x.ok ? '' : ' <span class="muted small">(no la encontré en tu respuesta)</span>'}</li>`).join('')}</ul>
+    <div class="row"><button class="btn primary" data-act="cRate" data-r="${cal.nota}">Continuar · ${NOTA_TXT[cal.nota]} (${cuandoTxt(ns.days)})</button></div>
+    <p class="small muted" style="margin:0">La revisión busca las ideas por palabras, así que puede equivocarse si lo dijiste de otra forma. Si no estás de acuerdo, califica tú:</p>
+    ${botones(cal.nota)}</div>`;
+}
 VIEWS.tarjetas = () => {
   const t = today();
   if (!CV.on) {
@@ -245,7 +259,7 @@ VIEWS.tarjetas = () => {
       `<div class="comparar ${CV.mia && CV.mia.trim() ? '' : 'sola'}">${CV.mia && CV.mia.trim() ? `<div class="cmp-col"><div class="eyebrow">Tu respuesta</div><div class="cmp-mia">${esc(CV.mia)}</div></div>` : ''}
        <div class="cmp-col glos"><div class="eyebrow">Respuesta</div><div class="a">${c.a}</div></div></div>
        <p class="small muted" style="margin:0">Compara: ¿dijiste lo esencial (lo que está en negrita)? Si te faltó una idea clave, marca <b>Difícil</b> u <b>Otra vez</b>.</p>`}</div>
-  ${CV.shown ? `<div class="rate">${[['again', 'Otra vez'], ['hard', 'Difícil'], ['good', 'Bien'], ['easy', 'Fácil']].map(([r, n]) => { const ns = nextState(c.id, r); return `<button class="btn" data-act="cRate" data-r="${r}">${n}<small>${ns.days === 0 ? 'hoy' : ns.days + ' d'}</small></button>`; }).join('')}</div>` : ''}</div>`;
+  ${CV.shown ? calificacionHtml(c) : ''}</div>`;
 };
 
 /* ===== Acciones ===== */
@@ -282,12 +296,21 @@ const ACT = {
   cFilter(el) { CV.filter = el.dataset.v; render(); },
   cStart(el) { CV.queue = buildQueue(el.dataset.free === '1'); CV.i = 0; CV.shown = false; CV.mia = ''; CV.on = true; CV.done = 0; render(); },
   cEnd() { CV.on = false; render(); },
-  cShow() { const t = $('#myans'); if (t) CV.mia = t.value; CV.shown = true; render(); },
+  cShow() {
+    const t = $('#myans'); if (t) CV.mia = t.value; CV.shown = true;
+    const c = CARDS.find(x => x.id === CV.queue[CV.i]);
+    CV.cal = null;
+    if (c && c.claves && (CV.mia || '').trim().split(/\s+/).length >= 2) {
+      const res = calificarRespuesta(CV.mia, c.claves);
+      CV.cal = { res, nota: notaDe(res.filter(x => x.ok).length / res.length) };
+    }
+    render();
+  },
   cRate(el) {
     const id = CV.queue[CV.i], r = el.dataset.r, ns = nextState(id, r), c = CARDS.find(x => x.id === id);
     P.cards[id] = { box: ns.box, due: addDays(today(), ns.days) }; record(c.t, r === 'good' || r === 'easy');
     if (r === 'again' && CV.queue.slice(CV.i + 1).indexOf(id) < 0) CV.queue.push(id);
-    CV.done++; CV.i++; CV.shown = false; CV.mia = ''; save(); addXp({ again: 0, hard: 2, good: 4, easy: 5 }[r]); render();
+    CV.done++; CV.i++; CV.shown = false; CV.mia = ''; CV.cal = null; save(); addXp({ again: 0, hard: 2, good: 4, easy: 5 }[r]); render();
   },
 
 };

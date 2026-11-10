@@ -104,6 +104,19 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   click('[data-act=cShow]');
   ok(d.querySelector('.cmp-mia') && d.querySelector('.cmp-mia').textContent === 'mi respuesta de prueba', 'tu respuesta se muestra junto a la solución');
   click('[data-act=cRate][data-r=good]'); ok(d.querySelector('#myans') && d.querySelector('#myans').value === '', 'la siguiente tarjeta empieza vacía');
+  /* tarjetas: calificación automática */
+  await go('tarjetas'); if (d.querySelector('[data-act=cEnd]')) click('[data-act=cEnd]');
+  w.eval("CV.queue = ['c03', 'c05']; CV.i = 0; CV.shown = false; CV.on = true; CV.done = 0; CV.mia = ''; render()");
+  let ta2 = d.querySelector('#myans'); ta2.value = 'local suma 1, al enviar suma 1 y el mensaje lleva el reloj, al recibir max(L,T)+1'; ta2.dispatchEvent(new w.Event('input', { bubbles: true }));
+  click('[data-act=cShow]');
+  ok(/3 de 3 ideas clave/.test(d.querySelector('.autocal').textContent) && d.querySelector('.autocal.good'), 'respuesta completa: 3 de 3 y nota Bien');
+  click('.autocal [data-act=cRate].primary'); ok(w.eval("P.cards.c03.box") >= 1 && w.eval('CV.i') === 1, 'Continuar aplica la nota sugerida');
+  ta2 = d.querySelector('#myans'); ta2.value = 'porque si no el reloj podría retroceder'; ta2.dispatchEvent(new w.Event('input', { bubbles: true }));
+  click('[data-act=cShow]');
+  ok(d.querySelector('.autocal.again') && d.querySelectorAll('.autocal .checks li.bad').length === 2, 'respuesta incompleta: nota Otra vez y muestra lo que faltó');
+  click('.autocal [data-act=cRate].primary');
+  ok(w.eval('CV.queue[CV.queue.length - 1]') === 'c05' && w.eval("P.cards.c05.box") === 0, 'con nota baja la tarjeta vuelve en la misma sesión');
+  click('[data-act=cShow]'); ok(!d.querySelector('.autocal') && d.querySelector('.rate'), 'sin respuesta escrita: calificación manual');
   /* sincronización entre dos dispositivos */
   await go('hoy'); click('[data-act=syNew]'); await sleep(80);
   const code = w.eval('SY.code'); ok(/^[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$/.test(code), 'codigo');
