@@ -96,7 +96,7 @@ glosario.push(
 { id: 'multimaster', t: 'multi-master', alias: [], def: 'Cualquier réplica acepta escrituras. Es más disponible, pero aparecen conflictos que hay que resolver.' },
 { id: 'failover', t: 'failover', alias: [], def: 'Reemplazar automáticamente al primary caído por un backup (normalmente el más actualizado).' },
 /* ---------- Fallos y consenso ---------- */
-{ id: 'heartbeat', t: 'heartbeat', alias: ['heartbeats', 'latido'], def: 'Mensaje periódico de "estoy vivo". Si no llega en un tiempo (timeout), se asume que el nodo falló.' },
+{ id: 'heartbeat', t: 'heartbeat', alias: ['heartbeats', 'latido'], def: 'Mensaje periódico de "estoy vivo". Si no llega en un tiempo (timeout), se asume que el nodo falló. Lo provee el <b>propio sistema</b>, a diferencia del ping.', ver: ['ping', 'polling', 'timeout'] },
 { id: 'timeout', t: 'timeout', alias: ['timeouts'], def: 'Tiempo máximo de espera. Si es corto, detecta rápido pero confunde nodos lentos con caídos (falsos positivos). Si es largo, se equivoca menos pero detecta tarde.' },
 { id: 'consenso', t: 'consenso', alias: [], def: 'Lograr que varios procesos acuerden <b>un mismo valor</b> aunque algunos fallen. Raft y Paxos son algoritmos de consenso.' },
 { id: 'flp', t: 'FLP', alias: ['teorema FLP'], def: 'Resultado teórico: en un sistema <b>asíncrono</b> con al menos un proceso que puede fallar, no existe algoritmo determinístico que garantice consenso. En la práctica se usan timeouts.' },
@@ -110,5 +110,16 @@ glosario.push(
 { id: 'lograft', t: 'log replicado', alias: ['log de Raft', 'entradas del log'], def: 'En Raft, la lista ordenada de comandos que todos los nodos deben aplicar en el mismo orden. Cada entrada tiene índice y term.' },
 { id: 'commit', t: 'commit', alias: ['commit_index', 'commitear'], def: 'Una entrada está <b>comprometida</b> (committed) cuando la tiene una mayoría: ya no se pierde y se puede aplicar.' },
 { id: 'logmatching', t: 'Log Matching', alias: ['Log Matching Property'], def: 'Si dos logs tienen una entrada con el mismo índice y term, son idénticos hasta esa posición. Por eso basta revisar la entrada anterior (prev_log_index) para validar todo lo previo.' },
-{ id: 'splitvote', t: 'split vote', alias: ['voto dividido'], def: 'En Raft, ningún candidato logra mayoría. Se resuelve con una nueva elección; los timeouts aleatorios hacen que sea raro.' }
+{ id: 'splitvote', t: 'split vote', alias: ['voto dividido'], def: 'En Raft, ningún candidato logra mayoría. Se resuelve con una nueva elección; los timeouts aleatorios hacen que sea raro.' },
+/* ---------- Clase de replicación y fallos ---------- */
+{ id: 'ping', t: 'ping', alias: [], def: 'Comando <b>externo</b> y administrativo que pregunta si un equipo responde. No es una prueba confiable: el servidor puede estar configurado para no responderlo o estar demasiado ocupado. Por eso los sistemas usan heartbeats.', ver: ['heartbeat'] },
+{ id: 'polling', t: 'polling', alias: [], def: 'Preguntar activamente y en forma periódica ("¿estás vivo?"). Si se pregunta muy seguido se satura al nodo; si muy espaciado, una falla pasa inadvertida.', ver: ['heartbeat'] },
+{ id: 'falsopos', t: 'falso positivo', alias: ['falsos positivos'], def: 'Dar por caído un nodo que en realidad estaba vivo pero lento u ocupado. Es el costo de un timeout demasiado corto.', ver: ['timeout'] },
+{ id: 'spof', t: 'punto único de falla', alias: ['single point of failure', 'SPOF'], def: 'Componente que, si falla, deja caído a todo el sistema (por ejemplo, un único servidor con todos los datos). Replicar es la forma de eliminarlo.' },
+{ id: 'overhead', t: 'overhead', alias: [], def: 'Trabajo o tiempo <b>adicional</b> que acompaña a cada operación para tareas administrativas o de gestión (encabezados, confirmaciones, sincronización). Puede llegar a ser mayor que la operación misma.' },
+{ id: 'mitm', t: 'man in the middle', alias: ['hombre en el medio'], def: 'Ataque al <b>medio de comunicación</b> entre dos nodos (por ejemplo, entre primario y backup) para leer o corromper lo que se transmite, sin atacar directamente a ninguno de los dos.' },
+{ id: 'checkpoint', t: 'checkpoint', alias: ['checkpoints', 'checkpointing'], def: 'Copia del <b>estado</b> del sistema guardada en disco cada cierto tiempo. Tras una falla se carga el último checkpoint y se re-ejecuta el log desde ahí.' },
+{ id: 'bully', t: 'Bully', alias: ['algoritmo Bully', 'algoritmo del matón'], def: 'Algoritmo de elección de coordinador: el nodo que detecta la caída envía ELECTION a los de ID mayor; si nadie responde OK, gana y anuncia COORDINATOR. Siempre gana el <b>ID más alto vivo</b>.' },
+{ id: 'determinista', t: 'determinista', alias: ['determinístico', 'determinismo'], def: 'Que con las mismas entradas y condiciones produce siempre el mismo resultado. Las elecciones de líder (Bully, quórum, Raft) son deterministas: no dependen del azar ni de un humano.' },
+{ id: 'tradeoff', t: 'trade-off', alias: ['trade off'], def: 'Compromiso: ganar en algo obliga a perder en otra cosa (por ejemplo, detección rápida frente a falsos positivos). El profesor lo describe como un regateo: alguien gana y alguien pierde.' }
 );

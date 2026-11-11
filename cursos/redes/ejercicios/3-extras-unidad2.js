@@ -373,5 +373,72 @@ ejercicios.push(
    "t": "Explica la aleatoriedad del timeout"
   }
  ]
+},
+{
+ "id": "X8",
+ "group": "extra",
+ "n": "Extra 8",
+ "topic": "fallos",
+ "lvl": 2,
+ "min": 15,
+ "title": "Quórum: elegir líder sin split-brain",
+ "statement": "<p>La red de un clúster se parte en dos lados. Cada lado intenta elegir líder con las reglas que dio el profesor: <b>nadie vota por sí mismo</b>, cada nodo vota por el de <b>menor latencia</b> que ve (empate: menor id) y solo se elige líder si el lado tiene <b>quórum</b>.</p>\n<ul><li><code>int quorum(int n)</code>: tamaño del quórum para n nodos.</li>\n<li><code>int elegir_voto(const Nodo v[], int n, int votante)</code>: por quién vota un nodo (solo ve a los de su mismo lado).</li>\n<li><code>int elegir_lider(const Nodo v[], int n, int lado)</code>: líder de ese lado, o −1 si no tiene quórum.</li></ul>\n<p>El <code>main</code> prueba un clúster de 5 nodos partido 3|2 y uno de 4 nodos partido 2|2. Pregunta del profesor: <b>¿se puede usar quórum para resolver el split-brain con un número par de nodos?</b></p>",
+ "files": [
+  "X8/quorum_lider.c"
+ ],
+ "hints": [
+  "Quórum es \"más de la mitad\": con 4 nodos, 2 no alcanza.",
+  "En elegir_voto, primero descarta (continue) al propio votante y a los del otro lado; después busca el mínimo.",
+  "El quórum se calcula con el clúster completo (n), no con los nodos que quedaron en el lado."
+ ],
+ "think": [
+  "quorum(n) = n/2 + 1 con división entera: 3 → 2, 4 → 3, 5 → 3. Con 4 nodos, 2 es la mitad, no la mayoría.",
+  "elegir_voto es un \"buscar el mínimo\" con dos filtros: no a sí mismo (si cada uno se vota, todos empatan con 1 voto) y solo los de su lado (no puede comunicarse con el otro lado). Usar < estricto deja al menor id en caso de empate: así la elección es determinista.",
+  "elegir_lider primero revisa el quórum contra el clúster COMPLETO. Si lo calcularas con los nodos del lado, el lado de 2 nodos diría \"tengo 2 de 2\" y elegiría su propio líder: dos líderes = split-brain.",
+  "Resultado: con N=5 partido 3|2 solo el lado de 3 elige líder (nodo 1). Con N=4 partido 2|2 ningún lado llega a 3: el sistema queda sin líder. Por eso la regla de oro es N impar."
+ ],
+ "qs": [
+  {
+   "q": "¿Se puede usar quórum para resolver el split-brain con un número par de nodos?",
+   "a": "<b>No de forma confiable.</b> Con N par la red se puede partir en dos mitades iguales (2|2 con N=4): ninguna tiene mayoría, así que no se elige líder y el sistema se detiene. Con N impar, en cualquier partición en dos lados uno siempre tiene mayoría. Regla de oro: <b>número impar de nodos</b>."
+  },
+  {
+   "q": "¿Por qué la regla \"nadie vota por sí mismo\"?",
+   "a": "Si cada nodo se vota a sí mismo, todos obtienen 1 voto y hay empate permanente: nunca hay líder. Al votar por otro según un criterio común (menor latencia), los votos se concentran en un nodo."
+  },
+  {
+   "q": "¿Qué significa que la elección sea determinista?",
+   "a": "Que con las mismas condiciones (mismos nodos, latencias y partición) siempre sale elegido el mismo líder. No hay azar ni intervención humana: por eso se desempata por id."
+  }
+ ],
+ "errors": [
+  "Usar n/2 como quórum (con 4 nodos, 2 no es mayoría).",
+  "Dejar que el nodo vote por sí mismo.",
+  "Calcular el quórum con los nodos del lado en vez del clúster completo (provoca split-brain).",
+  "Votar por nodos del otro lado de la partición.",
+  "Desempatar con <= (gana el id mayor y deja de coincidir con los demás)."
+ ],
+ "rubric": [
+  {
+   "pts": 2,
+   "t": "Quórum = n/2 + 1"
+  },
+  {
+   "pts": 3,
+   "t": "Voto: no a sí mismo, solo su lado, menor latencia con desempate por id"
+  },
+  {
+   "pts": 3,
+   "t": "Revisa el quórum contra el clúster completo antes de votar"
+  },
+  {
+   "pts": 2,
+   "t": "Cuenta votos y elige al de más votos (empate: menor id)"
+  },
+  {
+   "pts": 2,
+   "t": "Responde la pregunta de N par"
+  }
+ ]
 }
 );

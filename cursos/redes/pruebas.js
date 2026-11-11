@@ -74,5 +74,6 @@ Object.assign(pruebas, {
   X4: conPrueba('heartbeats.c', 'x4'),
   X5: conPrueba('raft_voto.c', 'x5'),
   X6: conPrueba('raft_append.c', 'x6'),
-  X7: conPrueba('raft_eleccion.c', 'x7')
+  X7: conPrueba('raft_eleccion.c', 'x7'),
+  X8: conPrueba('quorum_lider.c', 'x8')
 });

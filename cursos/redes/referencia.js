@@ -382,7 +382,7 @@ Object.assign(usaPatrones, {
   S1: ['p-servidor', 'p-cliente'], S2: ['p-servidor', 'p-atender'], S3: ['p-acumulador', 'p-atender', 'p-tiempo'],
   R1: ['p-stub', 'p-servidor'], R2: ['p-dispatch', 'p-servidor'], R3: ['p-flock', 'p-stub', 'p-servidor'],
   I1: ['p-pipe', 'p-cliente', 'p-servidor', 'p-tiempo'], I2: ['p-pipe', 'p-stub', 'p-servidor'], I3: ['p-servidor', 'p-pipe', 'p-select', 'p-cliente'],
-  X1: ['funciones'], X2: ['structs', 'strings'], X3: ['funciones'], X4: ['p-tiempo', 'structs'], X5: ['structs', 'punteros'], X6: ['structs', 'arreglos'], X7: ['structs', 'punteros']
+  X1: ['funciones'], X2: ['structs', 'strings'], X3: ['funciones'], X4: ['p-tiempo', 'structs'], X5: ['structs', 'punteros'], X6: ['structs', 'arreglos'], X7: ['structs', 'punteros'], X8: ['arreglos', 'structs', 'funciones']
 });
 
 /* ===== Pieza por pieza: cada elemento de la sintaxis explicado =====
