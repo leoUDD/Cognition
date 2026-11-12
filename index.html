@@ -534,7 +534,25 @@ function tabsCurso() {
   if ((CUR.referencia || []).length) t.push(['referencia', CUR.referenciaNombre || 'Referencia']);
   return t;
 }
-function render() { renderHeader(); $('#view').classList.toggle('ancho', cur === 'ejercicios' && !!EJ.sel && !!(curEx() || {}).files); $('#view').innerHTML = VIEWS[cur](); if (typeof enlazarGlosario === 'function') enlazarGlosario($('#view')); }
+/* Al redibujar la MISMA pantalla (mismo ejercicio), se conserva dónde estabas: la página, la columna izquierda,
+   el editor y los bloques de código con scroll propio. Al cambiar de pantalla o de ejercicio, se parte arriba. */
+const SCROLLABLES = ['.ws-izq', '.ws-der', '#ed', '.gpaso pre.code'];
+let ultimaVista = '';
+function render() {
+  const vista = cur + '|' + (cur === 'ejercicios' ? (EJ.sel || '') : '');
+  const misma = vista === ultimaVista, guardado = [], y = window.scrollY;
+  if (misma) SCROLLABLES.forEach(sel => document.querySelectorAll('#view ' + sel).forEach((el, i) => guardado.push([sel, i, el.scrollTop, el.scrollLeft])));
+  renderHeader();
+  $('#view').classList.toggle('ancho', cur === 'ejercicios' && !!EJ.sel && !!(curEx() || {}).files);
+  $('#view').innerHTML = VIEWS[cur]();
+  if (typeof enlazarGlosario === 'function') enlazarGlosario($('#view'));
+  if (misma) {
+    guardado.forEach(([sel, i, top, left]) => { const el = document.querySelectorAll('#view ' + sel)[i]; if (el) { el.scrollTop = top; el.scrollLeft = left; } });
+    window.scrollTo(0, y);
+    if (typeof actualizarGutter === 'function' && $('#ed')) actualizarGutter();
+  } else if (ultimaVista && cur === 'ejercicios') window.scrollTo(0, 0);
+  ultimaVista = vista;
+}
 function route() { let h = (location.hash || '#hoy').slice(1); if (h === 'papel') h = 'ejercicios'; const next = tabsCurso().some(x => x[0] === h) && VIEWS[h] ? h : 'hoy'; if (next !== cur) { stopTimer(); window.scrollTo(0, 0); } cur = next; render(); }
 
 /* ===== HOY ===== */
