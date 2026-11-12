@@ -5,7 +5,7 @@
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const CODE_RE = /^[a-z0-9-]{12,64}$/i;
-const MAX_BYTES = 256 * 1024;
+const MAX_BYTES = 900 * 1024;   /* incluye el código que escribes en los ejercicios */
 const TTL_SECONDS = 60 * 60 * 24 * 365;   // un año sin uso y se borra
 
 async function redis(command) {

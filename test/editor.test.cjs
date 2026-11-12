@@ -44,7 +44,21 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   /* borrador persiste y se puede reiniciar */
   w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="L06"]'); await sleep(20);
   ok(/n->clock\+\+\n/.test(d.querySelector('#ed').value) || d.querySelector('#ed').value.includes('n->clock++\n'), 'el borrador se conserva al volver');
-  click('[data-act=edReset]'); ok(/TODO 3/.test(d.querySelector('#ed').value), 'reiniciar vuelve al esqueleto');
+  ok(typeof w.eval("P.borradores.L06['reloj.c']") === 'string', 'el código queda guardado en el progreso (se sincroniza)');
+  ok(w.eval("JSON.parse(localStorage.getItem(KEY)).cursos.redes.borradores.L06") !== undefined, 'y en el almacenamiento local del progreso');
+  ok(/guardado/.test(d.querySelector('#edsave').textContent), 'avisa que el código está guardado: ' + d.querySelector('#edsave').textContent);
+  w.eval("EJ.sel = null; render()");
+  ok(/código guardado/.test(d.querySelector('[data-act=openEx][data-id="L06"]').textContent), 'la lista marca el ejercicio con código guardado');
+  click('[data-act=openEx][data-id="L06"]'); await sleep(20);
+  click('[data-act=edBorrar]');
+  ok(d.querySelector('[data-act=edBorrarSi]') && d.querySelector('#ed').value.includes('n->clock++\n'), 'borrar pide confirmación y todavía no borra');
+  click('[data-act=edBorrarNo]'); ok(d.querySelector('#ed').value.includes('n->clock++\n') && !d.querySelector('[data-act=edBorrarSi]'), 'cancelar conserva el código');
+  click('[data-act=edBorrar]'); click('[data-act=edBorrarSi]');
+  ok(/TODO 3/.test(d.querySelector('#ed').value) && !w.eval("(P.borradores||{}).L06"), 'confirmar borra el código y vuelve el esqueleto');
+  ok(d.querySelector('[data-act=edBorrar]').disabled, 'sin código propio, el botón Borrar queda desactivado');
+  /* escribir algo y dejarlo igual al esqueleto no ocupa espacio */
+  const esq = d.querySelector('#ed').value; escribir(esq + 'x'); escribir(esq);
+  ok(!w.eval("(P.borradores||{}).L06"), 'si el código vuelve a ser el esqueleto, no se guarda nada');
   /* ejercicio con 2 archivos: S1 servidor + cliente */
   w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="S1"]'); await sleep(20);
   const S1 = w.eval("EXERCISES.find(e=>e.id==='S1')"), sm = w.eval('sinMarcas');

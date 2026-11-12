@@ -3,14 +3,51 @@ const RUN = { estado: 'desconocido', info: null, url: '', ultimo: null, corriend
 try { RUN.url = localStorage.getItem('cognition-runner-url') || 'http://127.0.0.1:7777'; } catch (e) { RUN.url = 'http://127.0.0.1:7777'; }
 let LUGAR = 'papel';
 try { LUGAR = localStorage.getItem('cognition-lugar') || 'papel'; } catch (e) { }
-const BKEY = 'cognition-borradores';
-function borradores() { try { return JSON.parse(localStorage.getItem(BKEY) || '{}'); } catch (e) { return {}; } }
-function borrador(ex, f) { const b = borradores(); return ((b[CUR.id] || {})[ex.id] || {})[f.name]; }
+/* ===== Tu código (borradores) =====
+   Se guarda en cada tecla dentro del progreso (S.cursos[ramo].borradores[ejercicio][archivo]),
+   así viaja con la sincronización a otros dispositivos. Si queda igual al esqueleto, no se guarda. */
+const BKEY = 'cognition-borradores';   /* formato antiguo: solo en este navegador */
+function borradoresDe(ex) { return ((P.borradores || {})[ex.id]) || {}; }
+function borrador(ex, f) { return borradoresDe(ex)[f.name]; }
+function tieneBorrador(ex) { return Object.keys(borradoresDe(ex)).length > 0; }
 function guardarBorrador(ex, nombre, code) {
-  const b = borradores(); b[CUR.id] = b[CUR.id] || {}; b[CUR.id][ex.id] = b[CUR.id][ex.id] || {}; b[CUR.id][ex.id][nombre] = code;
-  try { localStorage.setItem(BKEY, JSON.stringify(b)); } catch (e) { }
+  P.borradores = P.borradores || {};
+  const f = (ex.files || []).find(x => x.name === nombre);
+  if (f && code === codigoInicial(ex, f)) {          /* igual al esqueleto: nada que guardar */
+    if (P.borradores[ex.id]) { delete P.borradores[ex.id][nombre]; if (!Object.keys(P.borradores[ex.id]).length) delete P.borradores[ex.id]; }
+  } else {
+    P.borradores[ex.id] = P.borradores[ex.id] || {};
+    P.borradores[ex.id][nombre] = code;
+  }
+  EJ.guardadoEn = Date.now();
+  save();
 }
-function borrarBorrador(ex, nombre) { const b = borradores(); if (b[CUR.id] && b[CUR.id][ex.id]) { delete b[CUR.id][ex.id][nombre]; try { localStorage.setItem(BKEY, JSON.stringify(b)); } catch (e) { } } }
+function borrarBorradores(ex) { if (P.borradores) delete P.borradores[ex.id]; save(); }
+/* Migración: los borradores que estaban solo en este navegador pasan al progreso (una vez) */
+(function migrarBorradores() {
+  let viejos = {};
+  try { viejos = JSON.parse(localStorage.getItem(BKEY) || '{}'); } catch (e) { return; }
+  if (!Object.keys(viejos).length) return;
+  Object.entries(viejos).forEach(([curso, exs]) => {
+    S.cursos[curso] = S.cursos[curso] || cursoVacio();
+    const dest = S.cursos[curso].borradores = S.cursos[curso].borradores || {};
+    Object.entries(exs || {}).forEach(([exId, archivos]) => {
+      Object.entries(archivos || {}).forEach(([nombre, code]) => {
+        dest[exId] = dest[exId] || {};
+        if (dest[exId][nombre] === undefined) dest[exId][nombre] = code;
+      });
+      if (dest[exId] && !Object.keys(dest[exId]).length) delete dest[exId];
+    });
+  });
+  try { localStorage.removeItem(BKEY); } catch (e) { }
+  save();
+})();
+/* Texto bajo el editor: dónde queda guardado tu código */
+function estadoGuardado(ex) {
+  if (!tieneBorrador(ex)) return 'Tu código se guarda automáticamente mientras escribes.';
+  const donde = typeof SY !== 'undefined' && SY.code ? 'guardado y sincronizado con tu código de sincronización' : 'guardado en este navegador (crea un código de sincronización en Hoy para tenerlo en otros dispositivos)';
+  return '✓ Tu código está ' + donde + '.';
+}
 const codigoInicial = (ex, f) => renderCode(f.code, EJ.mode === 'ninguno' ? 'medio' : EJ.mode, langOf(ex));
 const textoEditor = (ex, f) => borrador(ex, f) ?? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f));
 /* Quita las marcas de autor: //@TODO, //@END, guía (//? //-), explicaciones (//: …) y líneas clave (//§) */
@@ -91,8 +128,11 @@ function editorHtml(ex) {
    <textarea id="ed" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Editor de ${esc(f.name)}">${esc(textoEditor(ex, f))}</textarea></div></div>
    <div class="row spread"><div class="row">
      <button class="btn primary" data-act="compilar" ${listo && !RUN.corriendo ? '' : 'disabled'}>${RUN.corriendo ? 'Compilando y probando…' : 'Compilar y probar'}</button>
-     <button class="btn sm" data-act="edReset">Reiniciar ${esc(f.name)}</button></div>
-     <span class="muted small">Tab = 4 espacios · se guarda solo en este navegador</span></div>
+     ${EJ.confBorrar ? '' : `<button class="btn sm" data-act="edBorrar"${tieneBorrador(ex) ? '' : ' disabled title="Aún no has escrito nada"'}>Borrar mi código</button>`}</div>
+   ${EJ.confBorrar ? `<div class="callout warn row spread" role="alert"><span>¿Borrar tu código de este ejercicio${files.length > 1 ? ' (los ' + files.length + ' archivos)' : ''}? Vuelve el esqueleto inicial y no se puede deshacer.</span>
+     <span class="row"><button class="btn sm danger" data-act="edBorrarSi">Sí, borrar</button><button class="btn sm" data-act="edBorrarNo">Cancelar</button></span></div>` : ''}
+   <div class="muted small" id="edsave" aria-live="polite">${estadoGuardado(ex)}</div>
+     <span class="muted small">Tab = 4 espacios</span></div>
    ${!ex.pruebas ? '<div class="callout small">Este ejercicio no tiene pruebas automáticas: el ejecutor solo puede compilarlo.</div>' : ''}
    <div id="resultados">${resultadosHtml()}</div></div>
    ${listo ? '' : ayudaRunner()}`;
@@ -154,14 +194,16 @@ Object.assign(ACT, {
   },
   runIniciar() { iniciarRunner(); },
   compilar() { compilarYProbar(); },
-  edReset() { const ex = curEx(), f = ex.files[EJ.file]; borrarBorrador(ex, f.name); render(); },
+  edBorrar() { EJ.confBorrar = true; render(); },
+  edBorrarNo() { EJ.confBorrar = false; render(); },
+  edBorrarSi() { const ex = curEx(); borrarBorradores(ex); EJ.confBorrar = false; RUN.ultimo = null; toast('Código borrado: vuelves al esqueleto'); render(); },
   runPing() { pingRunner().then(render); render(); },
   runUrl() { const v = ($('#runurl') || {}).value; if (v) { RUN.url = v.replace(/\/$/, ''); try { localStorage.setItem('cognition-runner-url', RUN.url); } catch (e) { } pingRunner().then(render); } },
   async copiar(el) { try { await navigator.clipboard.writeText(el.dataset.txt); toast('Copiado'); } catch (e) { toast('Cópialo a mano'); } }
 });
 document.addEventListener('input', e => {
   if (e.target.id !== 'ed') return;
-  const ex = curEx(); if (ex) guardarBorrador(ex, ex.files[EJ.file].name, e.target.value);
+  const ex = curEx(); if (ex) { guardarBorrador(ex, ex.files[EJ.file].name, e.target.value); const st = $('#edsave'); if (st) st.textContent = estadoGuardado(ex); const bb = $('[data-act=edBorrar]'); if (bb) bb.disabled = !tieneBorrador(ex); }
   colorearEditor(); actualizarGutter();
 });
 document.addEventListener('scroll', e => { if (e.target.id === 'ed') actualizarGutter(); }, true);

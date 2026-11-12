@@ -20,7 +20,8 @@ r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: {
 r = mkRes(); await h({ method: 'GET', query: { code: 'ABCD-efgh-jkmn' } }, r); ok(r.body.data && r.body.data.xp === 42, 'get tras put (case-insensitive)');
 r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: '{"xp":7}' }, r); ok(r.code === 200, 'body string');
 r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: [1] }, r); ok(r.code === 400, 'array rechazado');
-r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: { big: 'x'.repeat(300000) } }, r); ok(r.code === 413, 'demasiado grande');
+r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: { big: 'x'.repeat(950000) } }, r); ok(r.code === 413, 'demasiado grande (> 900 KB)');
+r = mkRes(); await h({ method: 'PUT', query: { code: 'abcd-efgh-jkmn' }, body: { updatedAt: 1, big: 'x'.repeat(400000) } }, r); ok(r.code !== 413, 'el progreso con código guardado (400 KB) cabe');
 r = mkRes(); await h({ method: 'DELETE', query: { code: 'abcd-efgh-jkmn' } }, r); ok(r.code === 405, '405');
 process.env.KV_REST_API_TOKEN = 'mal'; h = (await import('../api/progress.js?c')).default;
 r = mkRes(); await h({ method: 'GET', query: { code: 'abcd-efgh-jkmn' } }, r); ok(r.code === 500, 'error de redis -> 500');

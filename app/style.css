@@ -212,3 +212,6 @@ h2.ref-g{margin:12px 0 0}
 
 .chipbtn.pat{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
 .ref.destacada{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
