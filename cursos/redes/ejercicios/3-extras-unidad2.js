@@ -61,7 +61,7 @@ ejercicios.push(
  ],
  "hints": [
   "put: cuenta acks y corta apenas llegas a W. get: cuenta lecturas exitosas y compara versiones.",
-  "En get, una réplica caída (read_from_replica = false) no cuenta: usa continue.",
+  "En get, una réplica caída (read_from_replica = false) no cuenta: solo sumas cuando responde.",
   "Si al terminar el for count < R, no hubo quórum de lectura → false."
  ],
  "think": [
@@ -388,7 +388,7 @@ ejercicios.push(
  ],
  "hints": [
   "Quórum es \"más de la mitad\": con 4 nodos, 2 no alcanza.",
-  "En elegir_voto, primero descarta (continue) al propio votante y a los del otro lado; después busca el mínimo.",
+  "En elegir_voto, usa dos if: uno que salta al propio votante y otro que deja solo a los de su lado. Dentro, busca el mínimo.",
   "El quórum se calcula con el clúster completo (n), no con los nodos que quedaron en el lado."
  ],
  "think": [

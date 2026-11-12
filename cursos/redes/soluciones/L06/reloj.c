@@ -10,7 +10,7 @@ void lamport_local(Node *n) {
 //@TODO 1 | Evento interno: C <- C + 1
 //? Regla 1 de Lamport: ¿qué le pasa al reloj en un evento interno?
 //- Súmale 1 al reloj del nodo: n->clock++ (n es un puntero, por eso ->).
-    n->clock++; //§
+    n->clock++; //§ //: evento: sumo 1 a mi reloj (n es puntero, por eso ->)
 //@END
 }
 
@@ -19,8 +19,8 @@ void lamport_send(Node *n, int *ts) {
 //? Enviar también es un evento, y además el mensaje debe llevar un timestamp. ¿Primero incrementas o primero copias?
 //- Primero incrementa el reloj (es un evento).
 //- Luego copia ese valor al lugar que apunta ts: *ts = n->clock.
-    n->clock++; //§
-    *ts = n->clock; //§
+    n->clock++; //§ //: evento: sumo 1 a mi reloj (n es puntero, por eso ->)
+    *ts = n->clock; //§ //: escribo el reloj en la variable ts de quien me llamó
 //@END
 }
 
@@ -29,10 +29,10 @@ void lamport_recv(Node *n, int ts_recv) {
 //? Al recibir, el reloj debe quedar por delante tanto de su propio pasado como del emisor. ¿Cómo combinas los dos valores?
 //- Si el ts recibido es mayor que tu reloj, tu reloj salta a ese valor (es el max; en C se hace con un if).
 //- Después, en cualquier caso, súmale 1.
-    if (ts_recv > n->clock) { //§
-        n->clock = ts_recv; //§
+    if (ts_recv > n->clock) { //§ //: ¿el reloj que llegó es mayor que el mío?
+        n->clock = ts_recv; //§ //: entonces salto a ese valor (esto es el max)
     }
-    n->clock++; //§
+    n->clock++; //§ //: evento: sumo 1 a mi reloj (n es puntero, por eso ->)
 //@END
 }
 

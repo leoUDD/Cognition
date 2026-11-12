@@ -95,6 +95,16 @@ Justo después de `//@TODO`, agrega una pregunta guía con `//?` y los pasos en 
 //@END
 ```
 
+Cada línea de código dentro de un TODO puede llevar al final una **explicación** con `//:` (después de `//§` si la línea es clave). En la guía, al revelar la línea, aparece como comentario justo arriba; en *Ver solución*, al final de la línea. No llega al compilador ni al editor del estudiante.
+
+```c
+    if (rcv[i] > n->v[i]) { //§ //: ¿el emisor sabe más que yo sobre Pi?
+        n->v[i] = rcv[i]; //§ //: entonces me actualizo (max casilla por casilla)
+    }
+```
+
+Escribe la explicación como la dirías en voz alta, sin repetir el código. Las llaves de cierre `}` no necesitan explicación: la guía las muestra junto con la línea anterior.
+
 La pregunta debe hacer **pensar** (no dar la respuesta). Los pasos van en español, en el orden en que se escribe el código.
 
 ## Pruebas automáticas (`pruebas.js`, opcional)

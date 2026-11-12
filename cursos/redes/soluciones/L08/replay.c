@@ -21,14 +21,14 @@ void replay(int *clock, LogEntry *log, int n) {
 //- Si es RECV: si ts_recv > *clock, entonces *clock = ts_recv (el max).
 //- Siempre: *clock = *clock + 1 (clock es un puntero: *clock es el número).
 //- printf("evento %d: C=%d\n", i + 1, *clock).
-    for (int i = 0; i < n; i++) {
-        if (log[i].type == RECV) { //§
-            if (log[i].ts_recv > *clock) { //§
-                *clock = log[i].ts_recv; //§
+    for (int i = 0; i < n; i++) { //: recorro las n entradas del log, en orden
+        if (log[i].type == RECV) { //§ //: ¿esta entrada es una recepción?
+            if (log[i].ts_recv > *clock) { //§ //: ¿el ts que llegó es mayor que mi reloj?
+                *clock = log[i].ts_recv; //§ //: entonces mi reloj salta a ese valor (el max)
             }
         }
-        *clock = *clock + 1; //§
-        printf("evento %d: C=%d\n", i + 1, *clock); //§
+        *clock = *clock + 1; //§ //: todo evento suma 1 (*clock es el número, clock es su dirección)
+        printf("evento %d: C=%d\n", i + 1, *clock); //§ //: muestro el reloj después del evento i+1
     }
 //@END
 }

@@ -25,9 +25,14 @@ bool log_matches(const RaftNode *n, int prev_log_index, int prev_log_term) {
 //@TODO 1 | Implementar log_matches
 //? ¿Tiene el follower la entrada prev_log_index con el term que dice el líder?
 //- Si prev_log_index > last_log_index → false (no la tiene).
-//- return log[prev_log_index].term == prev_log_term.
-    if (prev_log_index > n->last_log_index) return false; //§
-    return n->log[prev_log_index].term == prev_log_term; //§
+//- Si log[prev_log_index].term == prev_log_term → true; si no → false.
+    if (prev_log_index > n->last_log_index) { //§ //: ¿mi log es más corto que eso?
+        return false; //§ //: no tengo esa entrada
+    }
+    if (n->log[prev_log_index].term == prev_log_term) { //§ //: ¿mi entrada tiene el mismo term que dice el líder?
+        return true; //§ //: los logs coinciden hasta ahí
+    }
+    return false; //§ //: distinto term: los logs no coinciden
 //@END
 }
 
@@ -35,24 +40,31 @@ bool on_append_entries(RaftNode *n, const AppendEntriesArgs *args) {
 //@TODO 2 | Implementar on_append_entries
 //? Primero los rechazos; después copiar las entradas y avanzar el commit.
 //- term del líder < current_term → false; si no, adopta su term.
-//- Si !log_matches → false.
+//- Si log_matches da false → false.
 //- Para cada entrada k: idx = prev_log_index + 1 + k; log[idx] = entries[k]; last_log_index = idx.
-//- Si leader_commit > commit_index → commit_index = min(leader_commit, last_log_index).
-    if (args->term < n->current_term) return false; //§
-    n->current_term = args->term;
-    
-    if (!log_matches(n, args->prev_log_index, args->prev_log_term)) return false; //§
-    
-    for (int k = 0; k < args->n_entries; k++) {
-        int idx = args->prev_log_index + 1 + k; //§
-        n->log[idx] = args->entries[k]; //§
-        n->last_log_index = idx; //§
+//- Si leader_commit > commit_index → commit_index = el menor entre leader_commit y last_log_index.
+    if (args->term < n->current_term) { //§ //: ¿el "líder" viene de un term viejo?
+        return false; //§ //: lo rechazo
     }
-    
-    if (args->leader_commit > n->commit_index) { //§
-        n->commit_index = args->leader_commit < n->last_log_index ? args->leader_commit : n->last_log_index; //§
+    n->current_term = args->term; //: adopto el term del líder
+
+    if (log_matches(n, args->prev_log_index, args->prev_log_term) == false) { //§ //: ¿mi log no coincide antes de las nuevas entradas?
+        return false; //§ //: rechazo: el líder me mandará entradas más atrás
     }
-    return true;
+
+    for (int k = 0; k < args->n_entries; k++) { //: recorro las entradas nuevas
+        int idx = args->prev_log_index + 1 + k; //§ //: posición donde va la entrada k
+        n->log[idx] = args->entries[k]; //§ //: la copio (pisa lo que hubiera)
+        n->last_log_index = idx; //§ //: mi log ahora termina ahí
+    }
+
+    if (args->leader_commit > n->commit_index) { //§ //: ¿el líder confirmó más entradas que yo?
+        n->commit_index = args->leader_commit; //§ //: avanzo hasta donde dice el líder…
+        if (n->last_log_index < n->commit_index) { //§ //: …pero no más allá de lo que tengo
+            n->commit_index = n->last_log_index; //§ //: (es el min de los dos)
+        }
+    }
+    return true; //: entradas aceptadas
 //@END
 }
 

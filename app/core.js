@@ -13,10 +13,19 @@ function parseCode(src) {
     if (/^\s*(?:\/\/|#|--)@END\s*$/.test(raw)) { blk = null; continue; }
     const g = blk && raw.match(/^\s*(?:\/\/|#|--)([?-])\s?(.*)$/);   /* guía: //? pregunta  //- paso */
     if (g) { if (g[1] === '?') blk.pregunta = g[2]; else blk.pasos.push(g[2]); continue; }
-    const key = /(?:\/\/|#|--)§\s*$/.test(raw), t = raw.replace(/\s*(?:\/\/|#|--)§\s*$/, '');
-    if (blk) blk.lines.push({ t, key }); else out.push({ t });
+    /* explicación de la línea: "código; //§ //: qué hace" (o "#:" / "--:"), solo se muestra en la guía y en la solución */
+    const ex = raw.match(/\s*(?:\/\/|#|--):\s?(.*)$/), sinEx = ex ? raw.slice(0, ex.index) : raw;
+    const key = /(?:\/\/|#|--)§\s*$/.test(sinEx), t = sinEx.replace(/\s*(?:\/\/|#|--)§\s*$/, '');
+    const expl = ex ? ex[1].trim() : '';
+    if (blk) blk.lines.push({ t, key, expl }); else out.push({ t, expl });
   }
   return out;
+}
+/* Agrega la explicación como comentario al final de la línea (alineada en la columna 40 si cabe) */
+function conExplicacion(t, expl, co = '/* ', cc = ' */') {
+  if (!expl) return t;
+  const ancho = Math.max(t.length + 2, 40);
+  return t + ' '.repeat(ancho - t.length) + co + expl + cc;
 }
 /* mode: 'sol' (completo), 'alto' (oculta líneas clave), 'medio' (oculta el bloque entero) */
 const CMT = { python: ['# ', ''], sql: ['-- ', ''] };
@@ -24,10 +33,10 @@ function renderCode(src, mode, lang) {
   const [co, cc] = CMT[lang] || ['/* ', ' */'];
   const res = [];
   for (const it of parseCode(src)) {
-    if (!it.blk) { res.push(it.t); continue; }
+    if (!it.blk) { res.push(it.t); continue; }   /* fuera de los TODO, //: se omite: es código dado */
     const b = it.blk, first = b.lines.find(l => l.t.trim()) || { t: '' }, ind = first.t.match(/^\s*/)[0];
     res.push(ind + co + (mode === 'sol' ? '▼ TODO ' : 'TODO ') + b.label + ': ' + b.desc + cc);
-    if (mode === 'sol') b.lines.forEach(l => res.push(l.t));
+    if (mode === 'sol') b.lines.forEach(l => res.push(conExplicacion(l.t, l.expl, ...(CMT[lang] || ['// ', '']))));
     else if (mode === 'alto') {
       /* Si una línea clave abre un bloque ("if (...) {"), su "}" también se oculta: así no quedan llaves huérfanas */
       const abiertas = [];

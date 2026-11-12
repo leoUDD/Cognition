@@ -86,10 +86,21 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   click(d.querySelector('[data-act=guiaLinea]'));
   ok(d.querySelector('.gpaso pre.code') && /clock/.test(d.querySelector('.gpaso pre.code').textContent), 'revela la primera línea de código');
   ok(w.eval('penalizacionGuia()') === .75, 'penalización por usar la guía: ' + w.eval('penalizacionGuia()'));
+  ok(/\/\/ evento: sumo 1 a mi reloj/.test(d.querySelector('.gpaso pre.code').textContent), 'la línea revelada viene comentada con lo que hace');
   /* popover del glosario */
   const termino = d.querySelector('.term'); click(termino);
   ok(d.querySelector('#glospop.on') && d.querySelector('#glospop .gf-d').textContent.length > 20, 'el popover muestra la definición de "' + termino.textContent + '"');
   d.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape' })); ok(!d.querySelector('#glospop.on'), 'Escape cierra el popover');
+  /* las llaves de cierre se muestran junto con la línea anterior, sin gastar un clic */
+  w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="L10"]'); click('[data-act=guiaAbrir]');
+  const p3 = [...d.querySelectorAll('.gpaso')][2], bt = () => p3.querySelector('[data-act=guiaLinea]');
+  ok(/\(0\/4\)/.test(bt().textContent), 'TODO 3 de L10: 4 pasos de código (las } no cuentan): ' + bt().textContent);
+  for (let i = 0; i < 4; i++) click([...d.querySelectorAll('.gpaso')][2].querySelector('[data-act=guiaLinea]'));
+  const cod3 = [...d.querySelectorAll('.gpaso')][2].querySelector('pre.code').textContent;
+  ok((cod3.match(/\{/g) || []).length === (cod3.match(/\}/g) || []).length && /\/\/ ¿el emisor sabe más que yo/.test(cod3), 'el bloque revelado completo trae sus llaves y comentarios');
+  /* la solución también trae las explicaciones; el código que va al compilador no */
+  ok(/\/\/ sumo 1 solo en MI casilla/.test(w.eval("renderCode(EXERCISES.find(e=>e.id==='L10').files[0].code, 'sol', 'c')")), 'la solución muestra las explicaciones');
+  ok(!/\/\/[:§]/.test(w.eval("sinMarcas(EXERCISES.find(e=>e.id==='L10').files[0].code)")), 'el código para compilar no lleva marcas //: ni //§');
   w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="C01A"]');
   ok([...d.querySelectorAll('.card.glos .term')].some(t => /TCP|checksum|puerto/i.test(t.textContent)), 'el enunciado del Control 01 marca TCP, checksum o puerto');
   /* vista glosario + búsqueda */

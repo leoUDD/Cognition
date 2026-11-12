@@ -13,7 +13,11 @@ function guardarBorrador(ex, nombre, code) {
 function borrarBorrador(ex, nombre) { const b = borradores(); if (b[CUR.id] && b[CUR.id][ex.id]) { delete b[CUR.id][ex.id][nombre]; try { localStorage.setItem(BKEY, JSON.stringify(b)); } catch (e) { } } }
 const codigoInicial = (ex, f) => renderCode(f.code, EJ.mode === 'ninguno' ? 'medio' : EJ.mode, langOf(ex));
 const textoEditor = (ex, f) => borrador(ex, f) ?? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f));
-const sinMarcas = code => code.split('\n').filter(l => !/^\s*(\/\/|#|--)@(TODO|END)/.test(l)).map(l => l.replace(/\s*(\/\/|#|--)§\s*$/, '')).join('\n');
+/* Quita las marcas de autor: //@TODO, //@END, guía (//? //-), explicaciones (//: …) y líneas clave (//§) */
+const sinMarcas = code => code.split('\n')
+  .filter(l => !/^\s*(\/\/|#|--)(@(TODO|END)|[?-]\s)/.test(l))
+  .map(l => l.replace(/\s*(\/\/|#|--):\s.*$/, '').replace(/\s*(\/\/|#|--)§\s*$/, ''))
+  .join('\n');
 
 const vistoRunner = () => { try { return localStorage.getItem('cognition-runner-visto') === '1'; } catch (e) { return false; } };
 /* Abre cognition:// (registrado por el instalador): Windows inicia el ejecutor oculto en WSL.

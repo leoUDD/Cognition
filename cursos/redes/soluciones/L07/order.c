@@ -15,15 +15,15 @@ int total_order_cmp(const void *a, const void *b) {
 //- Convierte cada puntero: const Event *x = (const Event *)a; lo mismo con b.
 //- Si el ts de x es menor, x va primero: return -1. Si es mayor: return 1.
 //- Si empatan, desempata por nombre de proceso: return strcmp(x->proc, y->proc).
-    const Event *x = (const Event *)a; //§
-    const Event *y = (const Event *)b; //§
-    if (x->ts < y->ts) { //§
-        return -1; //§
+    const Event *x = (const Event *)a; //§ //: qsort me da un puntero genérico: lo convierto a Event*
+    const Event *y = (const Event *)b; //§ //: lo mismo con el segundo evento
+    if (x->ts < y->ts) { //§ //: ¿x tiene un timestamp menor?
+        return -1; //§ //: negativo = x va primero
     }
-    if (x->ts > y->ts) { //§
-        return 1; //§
+    if (x->ts > y->ts) { //§ //: ¿x tiene un timestamp mayor?
+        return 1; //§ //: positivo = y va primero
     }
-    return strcmp(x->proc, y->proc); //§
+    return strcmp(x->proc, y->proc); //§ //: empate en ts: desempato por nombre de proceso (P1 < P2 < P3)
 //@END
 }
 

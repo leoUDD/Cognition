@@ -35,8 +35,8 @@ int main(int argc, char *argv[]) {
 //? Cada TELEM que envía la sonda es un evento de envío. ¿Qué le pasa al reloj y dónde va el ts en el mensaje?
 //- reloj = reloj + 1.
 //- snprintf("TELEM %s %d %.2f %d\n", id, seq, valor, reloj).
-        reloj = reloj + 1; //§
-        snprintf(msg, sizeof(msg), "TELEM %s %d %.2f %d\n", id, seq, valor, reloj); //§
+        reloj = reloj + 1; //§ //: enviar es un evento: +1
+        snprintf(msg, sizeof(msg), "TELEM %s %d %.2f %d\n", id, seq, valor, reloj); //§ //: armo el mensaje con el reloj al final (el ts)
 //@END
         send(fd, msg, strlen(msg), 0);
         printf("[%s] envía %s", id, msg);

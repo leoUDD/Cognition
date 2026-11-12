@@ -12,7 +12,7 @@ void vc_local(VNode *n) {
 //@TODO 1 | Incrementa solo la propia entrada
 //? En un vector clock, cada proceso solo avanza SU propia posición en un evento local. ¿Cuál es la suya?
 //- Su posición es v[pid]: n->v[n->pid]++.
-    n->v[n->pid]++; //§
+    n->v[n->pid]++; //§ //: sumo 1 solo en MI casilla (v[pid])
 //@END
 }
 
@@ -21,9 +21,9 @@ void vc_send(VNode *n, int out[NPROC]) {
 //? Enviar = evento local + mandar una copia del vector completo.
 //- n->v[n->pid]++.
 //- for i en 0..NPROC-1: out[i] = n->v[i].
-    n->v[n->pid]++; //§
-    for (int i = 0; i < NPROC; i++) { //§
-        out[i] = n->v[i]; //§
+    n->v[n->pid]++; //§ //: sumo 1 solo en MI casilla (v[pid])
+    for (int i = 0; i < NPROC; i++) { //§ //: recorro las NPROC casillas
+        out[i] = n->v[i]; //§ //: copio la casilla i en la foto que viaja con el mensaje
     }
 //@END
 }
@@ -33,12 +33,12 @@ void vc_recv(VNode *n, const int rcv[NPROC]) {
 //? Al recibir, ¿cómo mezclas lo que tú sabes con lo que sabe el emisor sin perder información?
 //- Para cada componente i: si rcv[i] > n->v[i], n->v[i] = rcv[i] (máximo componente a componente).
 //- Después, incrementa tu propia posición: n->v[n->pid]++.
-    for (int i = 0; i < NPROC; i++) { //§
-        if (rcv[i] > n->v[i]) { //§
-            n->v[i] = rcv[i]; //§
+    for (int i = 0; i < NPROC; i++) { //§ //: recorro las NPROC casillas
+        if (rcv[i] > n->v[i]) { //§ //: ¿el emisor sabe más que yo sobre Pi?
+            n->v[i] = rcv[i]; //§ //: entonces me actualizo (max casilla por casilla)
         }
     }
-    n->v[n->pid]++; //§
+    n->v[n->pid]++; //§ //: sumo 1 solo en MI casilla (v[pid])
 //@END
 }
 
@@ -50,16 +50,16 @@ int vc_happens_before(const int a[NPROC], const int b[NPROC]) {
 //- Para cada i: si a[i] > b[i] → return 0 (ya no puede ser a → b).
 //- Si a[i] < b[i] → alguno_menor = 1.
 //- Al final: return alguno_menor (si todos eran iguales, no es a → b).
-    int alguno_menor = 0; //§
-    for (int i = 0; i < NPROC; i++) {
-        if (a[i] > b[i]) { //§
-            return 0; //§
+    int alguno_menor = 0; //§ //: bandera: todavía no veo ninguna casilla donde b sepa más
+    for (int i = 0; i < NPROC; i++) { //: recorro las NPROC casillas
+        if (a[i] > b[i]) { //§ //: ¿a sabe MÁS que b en esta casilla?
+            return 0; //§ //: entonces a NO pasó antes que b: termino
         }
-        if (a[i] < b[i]) { //§
-            alguno_menor = 1; //§
+        if (a[i] < b[i]) { //§ //: ¿b sabe más que a en esta casilla?
+            alguno_menor = 1; //§ //: anoto que b tiene algo más
         }
     }
-    return alguno_menor; //§
+    return alguno_menor; //§ //: 1 si b tiene todo lo de a y algo más; 0 si son iguales
 //@END
 }
 
@@ -69,13 +69,13 @@ int vc_concurrent(const int a[NPROC], const int b[NPROC]) {
 //- Si vc_happens_before(a, b) → return 0 (a pasó antes: no son concurrentes).
 //- Si vc_happens_before(b, a) → return 0 (b pasó antes).
 //- Si ninguno pasó antes → return 1.
-    if (vc_happens_before(a, b)) { //§
-        return 0; //§
+    if (vc_happens_before(a, b)) { //§ //: ¿a pasó antes que b?
+        return 0; //§ //: hay orden: no son concurrentes
     }
-    if (vc_happens_before(b, a)) { //§
-        return 0; //§
+    if (vc_happens_before(b, a)) { //§ //: ¿b pasó antes que a?
+        return 0; //§ //: hay orden: no son concurrentes
     }
-    return 1; //§
+    return 1; //§ //: ninguno pasó antes que el otro: son concurrentes
 //@END
 }
 

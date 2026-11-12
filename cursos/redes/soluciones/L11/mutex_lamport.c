@@ -58,22 +58,22 @@ void procesar(Msg m) {
 //- REQUEST: guarda su solicitud (cola_ts[m.pid] = m.ts), suma 1 al reloj (responder es un envío) y respóndele REPLY.
 //- REPLY: replies = replies + 1.
 //- RELEASE: borra su solicitud (cola_ts[m.pid] = -1) y releases = releases + 1.
-    if (m.ts > reloj) { //§
-        reloj = m.ts; //§
+    if (m.ts > reloj) { //§ //: ¿el reloj del mensaje es mayor que el mío?
+        reloj = m.ts; //§ //: entonces salto a ese valor (el max)
     }
-    reloj = reloj + 1; //§
+    reloj = reloj + 1; //§ //: recibir es un evento: +1
 
-    if (m.tipo == REQUEST) {
-        cola_ts[m.pid] = m.ts; //§
-        reloj = reloj + 1; //§
-        enviar(m.pid, REPLY, reloj); //§
+    if (m.tipo == REQUEST) { //: alguien pide la sección crítica
+        cola_ts[m.pid] = m.ts; //§ //: anoto su pedido en mi lista de espera
+        reloj = reloj + 1; //§ //: responder REPLY es un envío: +1
+        enviar(m.pid, REPLY, reloj); //§ //: le respondo "ok, te escuché"
     }
-    if (m.tipo == REPLY) {
-        replies = replies + 1; //§
+    if (m.tipo == REPLY) { //: alguien respondió a MI pedido
+        replies = replies + 1; //§ //: cuento un "ok" más
     }
-    if (m.tipo == RELEASE) {
-        cola_ts[m.pid] = -1; //§
-        releases = releases + 1; //§
+    if (m.tipo == RELEASE) { //: alguien salió de la sección crítica
+        cola_ts[m.pid] = -1; //§ //: lo borro de mi lista (-1 = no pide)
+        releases = releases + 1; //§ //: cuento un "ya salí" más (para saber cuándo terminar)
     }
 //@END
 }
@@ -86,32 +86,32 @@ void recibir_uno(void) {
 //- select(maxfd + 1, &listos, NULL, NULL, NULL).
 //- Para cada j ≠ me con FD_ISSET: read de un Msg.
 //- Si read devuelve 0, ese proceso murió: avisa y termina. Si no, procesar(m).
-    fd_set listos;
-    int maxfd = 0;
-    FD_ZERO(&listos); //§
-    for (int j = 0; j < NPROC; j++) {
-        if (j != me) {
+    fd_set listos; //: conjunto de pipes que voy a vigilar
+    int maxfd = 0; //: aquí guardo el descriptor más grande (select lo necesita)
+    FD_ZERO(&listos); //§ //: vacío el conjunto
+    for (int j = 0; j < NPROC; j++) { //: recorro los procesos
+        if (j != me) { //: salto mi propio número
             int fd = fds[j][me][0];     /* pipe que llega desde j */
-            FD_SET(fd, &listos); //§
-            if (fd > maxfd) {
-                maxfd = fd;
+            FD_SET(fd, &listos); //§ //: agrego esa pipe al conjunto
+            if (fd > maxfd) { //: ¿es el descriptor más grande hasta ahora?
+                maxfd = fd; //: lo guardo
             }
         }
     }
 
-    select(maxfd + 1, &listos, NULL, NULL, NULL); //§
+    select(maxfd + 1, &listos, NULL, NULL, NULL); //§ //: espero hasta que alguna pipe tenga un mensaje (sin timeout)
 
-    for (int j = 0; j < NPROC; j++) {
-        if (j != me) {
-            int fd = fds[j][me][0];
-            if (FD_ISSET(fd, &listos)) { //§
-                Msg m;
-                int n = read(fd, &m, sizeof(m)); //§
+    for (int j = 0; j < NPROC; j++) { //: recorro los procesos otra vez para ver cuál tiene datos
+        if (j != me) { //: salto mi propio número
+            int fd = fds[j][me][0]; //: la pipe que llega desde j
+            if (FD_ISSET(fd, &listos)) { //§ //: ¿esta pipe tiene un mensaje?
+                Msg m; //: aquí guardo el mensaje
+                int n = read(fd, &m, sizeof(m)); //§ //: leo un mensaje completo (un struct Msg)
                 if (n == 0) {           /* el otro extremo se cerró: P_j murió */
-                    fprintf(stderr, "[P%d] P%d se cayó (read() = 0)\n", me, j); //§
-                    exit(1);
+                    fprintf(stderr, "[P%d] P%d se cayó (read() = 0)\n", me, j); //§ //: aviso que Pj murió
+                    exit(1); //: termino: sin Pj nadie puede seguir
                 }
-                procesar(m); //§
+                procesar(m); //§ //: aplico Lamport y reacciono según el tipo
             }
         }
     }
@@ -124,12 +124,12 @@ void request_cs(void) {
 //- reloj = reloj + 1 y guarda tu solicitud: cola_ts[me] = reloj.
 //- replies = 0.
 //- Para cada j ≠ me: enviar(j, REQUEST, cola_ts[me]).
-    reloj = reloj + 1; //§
-    cola_ts[me] = reloj; //§
-    replies = 0; //§
-    for (int j = 0; j < NPROC; j++) {
-        if (j != me) {
-            enviar(j, REQUEST, cola_ts[me]); //§
+    reloj = reloj + 1; //§ //: pedir es un evento: +1
+    cola_ts[me] = reloj; //§ //: me anoto en mi propia lista con ese número
+    replies = 0; //§ //: todavía nadie me ha respondido
+    for (int j = 0; j < NPROC; j++) { //: a cada proceso…
+        if (j != me) { //: salto mi propio número
+            enviar(j, REQUEST, cola_ts[me]); //§ //: pido a j, con el MISMO número para todos
         }
     }
 //@END
@@ -141,19 +141,19 @@ int puedo_entrar(void) {
 //- Si replies < NPROC - 1 → return 0 (falta que alguien responda).
 //- Para cada otro j que esté pidiendo (cola_ts[j] != -1): si va_antes(cola_ts[j], j, cola_ts[me], me) → return 0.
 //- Si pasaste ambos filtros → return 1.
-    if (replies < NPROC - 1) { //§
-        return 0; //§
+    if (replies < NPROC - 1) { //§ //: ¿me faltan respuestas? (necesito NPROC-1 = 2)
+        return 0; //§ //: todavía no puedo entrar
     }
-    for (int j = 0; j < NPROC; j++) {
-        if (j != me) {
-            if (cola_ts[j] != -1) { //§
-                if (va_antes(cola_ts[j], j, cola_ts[me], me)) { //§
-                    return 0; //§
+    for (int j = 0; j < NPROC; j++) { //: ¿hay alguien antes que yo?
+        if (j != me) { //: salto mi propio número
+            if (cola_ts[j] != -1) { //§ //: ¿j está pidiendo?
+                if (va_antes(cola_ts[j], j, cola_ts[me], me)) { //§ //: ¿su pedido (ts, pid) va antes que el mío?
+                    return 0; //§ //: j va antes que yo: no es mi turno
                 }
             }
         }
     }
-    return 1; //§
+    return 1; //§ //: me respondieron todos y nadie va antes: entro
 //@END
 }
 
@@ -169,11 +169,11 @@ void release_cs(void) {
 //- cola_ts[me] = -1.
 //- reloj = reloj + 1.
 //- Para cada j ≠ me: enviar(j, RELEASE, reloj).
-    cola_ts[me] = -1; //§
-    reloj = reloj + 1; //§
-    for (int j = 0; j < NPROC; j++) {
-        if (j != me) {
-            enviar(j, RELEASE, reloj); //§
+    cola_ts[me] = -1; //§ //: me borro de mi lista
+    reloj = reloj + 1; //§ //: avisar RELEASE es un envío: +1
+    for (int j = 0; j < NPROC; j++) { //: a cada proceso…
+        if (j != me) { //: salto mi propio número
+            enviar(j, RELEASE, reloj); //§ //: aviso a j que salí
         }
     }
 //@END
@@ -203,14 +203,14 @@ void proceso(int id) {
 //- Usa los de ESCRITURA que salen de él: fds[me][b][1].
 //- Usa los de LECTURA que llegan a él: fds[a][me][0].
 //- Recorre todos los pares (a, b) con a ≠ b y cierra el resto: si a ≠ me cierra fds[a][b][1]; si b ≠ me cierra fds[a][b][0].
-    for (int a = 0; a < NPROC; a++) {
-        for (int b = 0; b < NPROC; b++) {
-            if (a != b) {
-                if (a != me) {
-                    close(fds[a][b][1]); //§
+    for (int a = 0; a < NPROC; a++) { //: a = proceso que escribe
+        for (int b = 0; b < NPROC; b++) { //: b = proceso que lee
+            if (a != b) { //: no existe pipe de un proceso a sí mismo
+                if (a != me) { //: esta pipe no sale de mí…
+                    close(fds[a][b][1]); //§ //: …así que cierro su extremo de escritura
                 }
-                if (b != me) {
-                    close(fds[a][b][0]); //§
+                if (b != me) { //: esta pipe no llega a mí…
+                    close(fds[a][b][0]); //§ //: …así que cierro su extremo de lectura
                 }
             }
         }
@@ -236,28 +236,28 @@ int main(void) {
 //- Dos for (i, j) con i ≠ j: pipe(fds[i][j]) → 6 pipes.
 //- Para cada i: if (fork() == 0) proceso(i).
 //- El padre cierra todos los extremos y hace wait(NULL) 3 veces.
-    for (int i = 0; i < NPROC; i++) {
-        for (int j = 0; j < NPROC; j++) {
-            if (i != j) {
-                pipe(fds[i][j]); //§
+    for (int i = 0; i < NPROC; i++) { //: i = proceso que escribe
+        for (int j = 0; j < NPROC; j++) { //: j = proceso que lee
+            if (i != j) { //: no hay pipe de un proceso a sí mismo
+                pipe(fds[i][j]); //§ //: creo la pipe de i hacia j (antes del fork)
             }
         }
     }
-    for (int i = 0; i < NPROC; i++) {
-        if (fork() == 0) { //§
-            proceso(i); //§
+    for (int i = 0; i < NPROC; i++) { //: lanzo un hijo por proceso
+        if (fork() == 0) { //§ //: ¿soy el hijo?
+            proceso(i); //§ //: el hijo se convierte en el proceso i (termina con exit)
         }
     }
-    for (int i = 0; i < NPROC; i++) {
-        for (int j = 0; j < NPROC; j++) {
-            if (i != j) {
-                close(fds[i][j][0]); //§
-                close(fds[i][j][1]); //§
+    for (int i = 0; i < NPROC; i++) { //: el padre recorre todas las pipes
+        for (int j = 0; j < NPROC; j++) { //: j = proceso que lee
+            if (i != j) { //: no hay pipe de un proceso a sí mismo
+                close(fds[i][j][0]); //§ //: el padre no lee…
+                close(fds[i][j][1]); //§ //: …ni escribe: cierra ambos extremos
             }
         }
     }
-    for (int i = 0; i < NPROC; i++) {
-        wait(NULL); //§
+    for (int i = 0; i < NPROC; i++) { //: espero a los 3 hijos
+        wait(NULL); //§ //: espero que termine un hijo
     }
 //@END
     printf("Listo. Revisa log.txt\n");

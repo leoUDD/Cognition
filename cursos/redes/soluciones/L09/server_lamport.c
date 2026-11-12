@@ -19,10 +19,10 @@ void handle_client(int fd) {
 //? Llegó un mensaje con msg.ts. Aplica la regla de recepción al reloj global.
 //- Si msg.ts > global_clock → global_clock = msg.ts.
 //- global_clock++.
-        if (msg.ts > global_clock) { //§
-            global_clock = msg.ts; //§
+        if (msg.ts > global_clock) { //§ //: ¿el reloj del mensaje es mayor que el del servidor?
+            global_clock = msg.ts; //§ //: entonces el servidor salta a ese valor (el max)
         }
-        global_clock++; //§
+        global_clock++; //§ //: evento del servidor: suma 1
 //@END
         printf("[srv clock=%d] recibido '%s'\n", global_clock, msg.payload);
 
@@ -30,7 +30,7 @@ void handle_client(int fd) {
 //@TODO 2 | Evento interno
 //? Procesar el mensaje es un evento interno. ¿Qué regla aplica?
 //- global_clock++.
-        global_clock++; //§
+        global_clock++; //§ //: evento del servidor: suma 1
 //@END
 
         /* 3. Preparar respuesta con timestamp */
@@ -39,8 +39,8 @@ void handle_client(int fd) {
 //? La respuesta debe llevar el reloj del servidor. Enviar también cuenta como evento.
 //- global_clock++ (evento de envío).
 //- resp.ts = global_clock.
-        global_clock++; //§
-        resp.ts = global_clock; //§
+        global_clock++; //§ //: evento del servidor: suma 1
+        resp.ts = global_clock; //§ //: la respuesta lleva el reloj ya incrementado
 //@END
         send(fd, &resp, sizeof(resp), 0);
     }
@@ -53,8 +53,8 @@ void client_send(int fd, int *clock, const char *text) {
 //? Desde el cliente: regla de envío con un reloj que llega como puntero.
 //- *clock = *clock + 1 (clock es un puntero: *clock es el número).
 //- msg.ts = *clock.
-    *clock = *clock + 1; //§
-    msg.ts = *clock; //§
+    *clock = *clock + 1; //§ //: envío: sumo 1 al reloj del cliente (llega como puntero)
+    msg.ts = *clock; //§ //: el mensaje lleva el reloj del cliente
 //@END
     snprintf(msg.payload, sizeof(msg.payload), "%s", text);
     send(fd, &msg, sizeof(msg), 0);

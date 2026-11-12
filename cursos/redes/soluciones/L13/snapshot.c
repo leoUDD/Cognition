@@ -75,13 +75,13 @@ void tomar_snapshot(void) {
 //- P.snap_counter = P.counter; P.snap_taken = 1; guarda el reloj.
 //- P.clock = P.clock + 1 (enviar es un evento).
 //- Para cada j ≠ pid: enviar(j, MARKER, 0).
-    P.snap_counter = P.counter; //§
-    P.snap_taken = 1; //§
-    P.snap_clock = P.clock;
+    P.snap_counter = P.counter; //§ //: congelo mi estado: guardo cuánto tengo ahora
+    P.snap_taken = 1; //§ //: anoto que ya tomé mi snapshot
+    P.snap_clock = P.clock; //: guardo el reloj del momento (para mostrarlo)
     P.clock = P.clock + 1;          /* enviar es un evento */ //§
-    for (int j = 0; j < NPROC; j++) {
-        if (j != P.pid) {
-            enviar(j, MARKER, 0); //§
+    for (int j = 0; j < NPROC; j++) { //: a cada proceso…
+        if (j != P.pid) { //: …menos a mí…
+            enviar(j, MARKER, 0); //§ //: …le mando un MARKER por su canal
         }
     }
 //@END
@@ -93,25 +93,25 @@ void recibir(Msg m) {
 //- Regla de recepción: si m.ts > P.clock, P.clock = m.ts; después P.clock = P.clock + 1.
 //- TRANSFER: P.counter = P.counter + m.amount. Si ya tomaste el snapshot y AÚN no llega el MARKER de ese canal → súmalo a transito[m.from].
 //- MARKER: si no has tomado el snapshot, tómalo ahora. Marca marker_from[m.from] = 1.
-    if (m.ts > P.clock) { //§
-        P.clock = m.ts; //§
+    if (m.ts > P.clock) { //§ //: ¿el reloj del mensaje es mayor que el mío?
+        P.clock = m.ts; //§ //: entonces salto a ese valor (el max)
     }
-    P.clock = P.clock + 1; //§
+    P.clock = P.clock + 1; //§ //: recibir es un evento: +1
 
-    if (m.tipo == TRANSFER) {
-        P.counter = P.counter + m.amount; //§
-        if (P.snap_taken == 1) { //§
+    if (m.tipo == TRANSFER) { //: llegó dinero
+        P.counter = P.counter + m.amount; //§ //: lo sumo a mi contador
+        if (P.snap_taken == 1) { //§ //: ¿ya tomé mi snapshot?
             if (P.marker_from[m.from] == 0) {   /* llegó tras mi snapshot y antes del MARKER de ese canal */ //§
-                P.transito[m.from] = P.transito[m.from] + m.amount; //§
-                P.n_transito = P.n_transito + 1;
+                P.transito[m.from] = P.transito[m.from] + m.amount; //§ //: entonces ese dinero estaba EN TRÁNSITO en el canal from → yo
+                P.n_transito = P.n_transito + 1; //: cuento un mensaje en tránsito más
             }
         }
     }
-    if (m.tipo == MARKER) {
-        if (P.snap_taken == 0) { //§
-            tomar_snapshot(); //§
+    if (m.tipo == MARKER) { //: llegó un MARKER
+        if (P.snap_taken == 0) { //§ //: ¿es el primero que recibo?
+            tomar_snapshot(); //§ //: entonces tomo mi snapshot y reenvío MARKER
         }
-        P.marker_from[m.from] = 1; //§
+        P.marker_from[m.from] = 1; //§ //: el canal from → yo queda cerrado: ya no cuento más en tránsito por él
     }
 //@END
 }
@@ -191,33 +191,33 @@ void proceso(int id) {
 //- leer_pipes() para procesar lo que haya llegado.
 //- Si eres P0, vas en la iteración 10 y no has tomado el snapshot → tomar_snapshot().
 //- Sigue mientras no pases ITER o el snapshot no esté completo.
-    int it = 0;
-    while (it < ITER || snapshot_completo() == 0) {
-        usleep(100000);
+    int it = 0; //: número de iteración
+    while (it < ITER || snapshot_completo() == 0) { //: sigo mientras no termine las iteraciones o falte completar el snapshot
+        usleep(100000); //: espero 100 ms (simula el paso del tiempo)
         P.clock = P.clock + 1;                  /* evento local */ //§
-        if (it < ITER) {
+        if (it < ITER) { //: solo transfiero durante las ITER iteraciones
             if (rand() % 2 == 0) {              /* probabilidad 1/2 */
-                if (P.counter >= 10) {
+                if (P.counter >= 10) { //: solo si tengo al menos 10
                     int dest = rand() % NPROC;  /* un destino al azar distinto de mí */ //§
-                    while (dest == id) {
-                        dest = rand() % NPROC;
+                    while (dest == id) { //: si me tocó a mí mismo…
+                        dest = rand() % NPROC; //: …sorteo otra vez
                     }
-                    int cant = 1 + rand() % 10;
+                    int cant = 1 + rand() % 10; //: cantidad al azar entre 1 y 10
                     P.counter = P.counter - cant;   /* el emisor resta */ //§
-                    P.clock = P.clock + 1; //§
-                    enviar(dest, TRANSFER, cant); //§
+                    P.clock = P.clock + 1; //§ //: enviar TRANSFER es un evento: +1
+                    enviar(dest, TRANSFER, cant); //§ //: mando el dinero
                 }
             }
         }
-        leer_pipes(); //§
-        if (id == 0) {
-            if (it == 10) { //§
-                if (P.snap_taken == 0) { //§
-                    tomar_snapshot(); //§
+        leer_pipes(); //§ //: proceso todo lo que haya llegado (sin bloquearme)
+        if (id == 0) { //: solo P0 inicia el snapshot…
+            if (it == 10) { //§ //: …en la iteración 10…
+                if (P.snap_taken == 0) { //§ //: …y aún no lo he tomado
+                    tomar_snapshot(); //§ //: P0 inicia el snapshot
                 }
             }
         }
-        it = it + 1;
+        it = it + 1; //: paso a la siguiente iteración
     }
 //@END
     int total_tr = 0;

@@ -89,6 +89,18 @@ function bloquesDe(ex) {
   (ex.files || []).forEach((f, fi) => parseCode(f.code).forEach((it, bi) => { if (it.blk) out.push({ key: fi + ':' + bi, file: f.name, ...it.blk }); }));
   return out;
 }
+/* Cada "Siguiente línea" revela una línea con su explicación; las llaves de cierre ("}") se muestran junto con la anterior */
+function gruposDeLineas(lines) {
+  const g = [];
+  lines.filter(l => l.t.trim()).forEach(l => {
+    if (/^[}\]);,]+$/.test(l.t.trim()) && g.length) g[g.length - 1].push(l); else g.push([l]);
+  });
+  return g;
+}
+/* En la guía la explicación va en su propia línea, justo arriba del código y con su misma sangría (cabe en columnas angostas) */
+function comentarioArriba(t, expl, co, cc) {
+  return expl ? t.match(/^\s*/)[0] + co + expl + cc + '\n' + t : t;
+}
 function guiaHtml(ex) {
   if (!EJ.guiaAbierta) return `<div class="row"><button class="btn" data-act="guiaAbrir">No sé por dónde empezar: guíame paso a paso</button></div>`;
   const bl = bloquesDe(ex), G = EJ.guia;
@@ -104,12 +116,13 @@ function guiaHtml(ex) {
   <p class="small muted" style="margin:0">Ve TODO por TODO. Primero responde la pregunta en tu cabeza o en la hoja; abre los pasos solo si sigues en blanco, y las líneas de código como último recurso (cada línea revelada resta un poco de XP).</p>
   ${metodo}
   ${bl.map((b, i) => {
-    const st = G[b.key] || { pasos: false, lineas: 0 }, total = b.lines.filter(l => l.t.trim()).length;
-    const visibles = b.lines.filter(l => l.t.trim()).slice(0, st.lineas);
+    const st = G[b.key] || { pasos: false, lineas: 0 }, grupos = gruposDeLineas(b.lines), total = grupos.length;
+    const [co, cc] = CMT[langOf(ex)] || ['// ', ''];
+    const visibles = grupos.slice(0, st.lineas).flat();
     return `<div class="gpaso glos"><div class="gp-h"><span class="gp-n">${i + 1}</span><div><b>TODO ${esc(b.label)}</b>${bl.some(x => x.file !== b.file) ? ` <span class="muted small">· ${esc(b.file)}</span>` : ''}<div class="small">${esc(b.desc)}</div></div></div>
      ${b.pregunta ? `<div class="gp-q"><span class="eyebrow">Pregúntate</span><div>${esc(b.pregunta)}</div></div>` : ''}
      ${st.pasos ? `<div class="gp-s"><span class="eyebrow">Pasos</span><ol class="clean">${b.pasos.map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
-     ${visibles.length ? `<pre class="code">${highlight(visibles.map(l => l.t.replace(/^ {4}/, '')).join('\n'), langOf(ex))}</pre>` : ''}
+     ${visibles.length ? `<pre class="code gp-code">${highlight(visibles.map(l => comentarioArriba(l.t.replace(/^ {4}/, ''), l.expl, co, cc)).join('\n'), langOf(ex))}</pre>` : ''}
      <div class="row">${!st.pasos && b.pasos.length ? `<button class="btn sm" data-act="guiaPasos" data-k="${b.key}">Ver los pasos</button>` : ''}
      ${st.lineas < total ? `<button class="btn sm" data-act="guiaLinea" data-k="${b.key}">${st.lineas ? 'Siguiente línea' : 'Mostrar la primera línea de código'} (${st.lineas}/${total})</button>` : `<span class="small muted">Bloque completo. Ahora escríbelo tú sin mirar.</span>`}</div></div>`;
   }).join('')}</section>`;

@@ -13,7 +13,7 @@ int quorum(int n) {
 //@TODO 1 | Tamaño del quórum para un clúster de n nodos
 //? ¿Cuántos nodos son "más de la mitad"? Prueba tu fórmula con n = 4 y n = 5.
 //- Divide n por 2 (división entera) y súmale 1.
-    return n / 2 + 1; //§
+    return n / 2 + 1; //§ //: más de la mitad: 4 → 3, 5 → 3
 //@END
 }
 
@@ -25,12 +25,20 @@ int elegir_voto(const Nodo v[], int n, int votante) {
 //- Sáltate al propio votante y a los que están en otro lado de la partición.
 //- Quédate con el de menor latencia; si empatan, con el de menor id (así es determinista).
 //- Si no encontraste a nadie, retorna -1.
-    int mejor = -1;
-    for (int i = 0; i < n; i++) {
-        if (i == votante || v[i].lado != v[votante].lado) continue; //§
-        if (mejor == -1 || v[i].latencia < v[mejor].latencia) mejor = i; //§
+    int mejor = -1; //: todavía no elijo a nadie
+    for (int i = 0; i < n; i++) { //: reviso cada nodo
+        if (i != votante) { //§ //: nadie vota por sí mismo
+            if (v[i].lado == v[votante].lado) { //§ //: solo veo a los de mi lado de la partición
+                if (mejor == -1) { //§ //: es el primero que encuentro…
+                    mejor = i; //§ //: …por ahora es el mejor
+                }
+                if (v[i].latencia < v[mejor].latencia) { //§ //: ¿tiene menor latencia que el mejor? (< estricto: en empate gana el id menor)
+                    mejor = i; //§ //: entonces voto por él
+                }
+            }
+        }
     }
-    return mejor;
+    return mejor; //: -1 si no había nadie más en mi lado
 //@END
 }
 
@@ -42,20 +50,36 @@ int elegir_lider(const Nodo v[], int n, int lado) {
 //- Si son menos que quorum(n) (n = clúster COMPLETO), retorna -1.
 //- Cada nodo del lado vota con elegir_voto y sumas votos en un arreglo votos[MAX_NODOS] = {0}.
 //- Gana el que tenga más votos; si empatan, el de menor id.
-    int presentes = 0;
-    for (int i = 0; i < n; i++)
-        if (v[i].lado == lado) presentes++;
-    if (presentes < quorum(n)) return -1; //§
-
-    int votos[MAX_NODOS] = {0};
-    for (int i = 0; i < n; i++) {
-        if (v[i].lado != lado) continue;
-        int d = elegir_voto(v, n, i); //§
-        if (d >= 0) votos[d]++; //§
+    int presentes = 0; //: cuántos nodos quedaron en este lado
+    for (int i = 0; i < n; i++) { //: cuento…
+        if (v[i].lado == lado) { //: …los de este lado
+            presentes = presentes + 1;
+        }
     }
-    int lider = -1;
-    for (int i = 0; i < n; i++)
-        if (v[i].lado == lado && (lider == -1 || votos[i] > votos[lider])) lider = i; //§
+    if (presentes < quorum(n)) { //§ //: ¿no tengo mayoría del clúster COMPLETO?
+        return -1; //§ //: este lado no elige: así no hay split-brain
+    }
+
+    int votos[MAX_NODOS] = {0}; //: votos de cada nodo, todos en 0
+    for (int i = 0; i < n; i++) { //: cada nodo…
+        if (v[i].lado == lado) { //: …de este lado…
+            int d = elegir_voto(v, n, i); //§ //: …elige por quién votar
+            if (d >= 0) { //§ //: ¿encontró a alguien?
+                votos[d] = votos[d] + 1; //§ //: sumo el voto
+            }
+        }
+    }
+    int lider = -1; //: todavía no hay líder
+    for (int i = 0; i < n; i++) { //: busco al más votado
+        if (v[i].lado == lado) { //: entre los de este lado
+            if (lider == -1) { //§ //: el primero que veo…
+                lider = i; //§ //: …es el líder por ahora
+            }
+            if (votos[i] > votos[lider]) { //§ //: ¿tiene más votos? (> estricto: en empate gana el id menor)
+                lider = i; //§ //: es el nuevo líder
+            }
+        }
+    }
     return lider;
 //@END
 }
