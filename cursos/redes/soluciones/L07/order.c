@@ -13,12 +13,16 @@ int total_order_cmp(const void *a, const void *b) {
 //@TODO 1 | <0 si a va primero, >0 si b va primero
 //? qsort te entrega dos punteros genéricos (void*). ¿Qué haces primero para poder leer sus campos? ¿Y qué comparas después?
 //- Convierte cada puntero: const Event *x = (const Event *)a; lo mismo con b.
-//- Si los ts son distintos, retorna x->ts - y->ts (negativo si x va antes).
-//- Si empatan, desempata con strcmp(x->proc, y->proc).
+//- Si el ts de x es menor, x va primero: return -1. Si es mayor: return 1.
+//- Si empatan, desempata por nombre de proceso: return strcmp(x->proc, y->proc).
     const Event *x = (const Event *)a; //§
     const Event *y = (const Event *)b; //§
-    if (x->ts != y->ts) //§
-        return x->ts - y->ts; //§
+    if (x->ts < y->ts) { //§
+        return -1; //§
+    }
+    if (x->ts > y->ts) { //§
+        return 1; //§
+    }
     return strcmp(x->proc, y->proc); //§
 //@END
 }
@@ -31,7 +35,8 @@ Event events[] = {
 
 int main(void) {
     qsort(events, N, sizeof(Event), total_order_cmp);
-    for (int i = 0; i < (int)N; i++)
+    for (int i = 0; i < (int)N; i++) {
         printf("%d. [%s ts=%d] %s\n", i+1, events[i].proc, events[i].ts, events[i].name);
+    }
     return 0;
 }

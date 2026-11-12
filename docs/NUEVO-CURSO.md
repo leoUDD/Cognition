@@ -66,6 +66,21 @@ void f(int *x) {
 
 En Python usa `#@TODO`, `#@END` y `#§`; en SQL, `--@TODO`, `--@END` y `--§`.
 
+### Estilo de las soluciones: sintaxis simple
+
+El estudiante debe poder **escribir la solución en papel**. Usa la forma más simple y conocida:
+
+- `max` con un `if`, nunca el ternario `a > b ? a : b`.
+- Llaves `{ }` siempre, aunque el bloque tenga una sola línea.
+- Una condición por `if`: en vez de `if (a && b && c)`, `if` anidados.
+- Sin `continue`: `if (j != me) { ... }`.
+- Con punteros a número, `*p = *p + 1` en vez de `(*p)++`.
+- Copiar arreglos con un `for`, no con `memcpy`.
+- `qsort`: comparadores con `if` que retornan -1, 1 o 0.
+- Mantén las firmas que da el enunciado (por ejemplo `Node *n` y `n->clock`) y las llamadas al sistema que el ejercicio exige (`pipe`, `fork`, `select`).
+
+En el nivel *Líneas clave ocultas*, si una línea `//§` abre un bloque (`if (...) { //§`), su `}` se oculta junto con ella; `test/llaves.test.cjs` verifica que no queden llaves huérfanas.
+
 ### Guía paso a paso (dentro de cada TODO)
 
 Justo después de `//@TODO`, agrega una pregunta guía con `//?` y los pasos en pseudocódigo con `//-`. No aparecen en el código que ve el estudiante: alimentan el botón *"No sé por dónde empezar"*.

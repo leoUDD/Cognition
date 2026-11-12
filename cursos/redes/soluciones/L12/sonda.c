@@ -24,24 +24,27 @@ int main(int argc, char *argv[]) {
     srv.sin_family = AF_INET;
     srv.sin_port = htons(PORT);
     inet_pton(AF_INET, argv[2], &srv.sin_addr);
-    if (connect(fd, (struct sockaddr *)&srv, sizeof srv) < 0) { perror("connect"); return 1; }
+    if (connect(fd, (struct sockaddr *)&srv, sizeof(srv)) < 0) {
+        perror("connect");
+        return 1;
+    }
 
     for (int seq = 1; seq <= 5; seq++) {
-        valor += 0.5f;
+        valor = valor + 0.5f;
 //@TODO 1 | Regla de envío: incrementar el reloj y adjuntar ts
 //? Cada TELEM que envía la sonda es un evento de envío. ¿Qué le pasa al reloj y dónde va el ts en el mensaje?
-//- reloj++.
+//- reloj = reloj + 1.
 //- snprintf("TELEM %s %d %.2f %d\n", id, seq, valor, reloj).
-        reloj++; //§
-        snprintf(msg, sizeof msg, "TELEM %s %d %.2f %d\n", id, seq, valor, reloj); //§
+        reloj = reloj + 1; //§
+        snprintf(msg, sizeof(msg), "TELEM %s %d %.2f %d\n", id, seq, valor, reloj); //§
 //@END
         send(fd, msg, strlen(msg), 0);
         printf("[%s] envía %s", id, msg);
         usleep(300000);
     }
     if (argc >= 5) {            /* opcional: un RELAY hacia otra sonda */
-        reloj++;
-        snprintf(msg, sizeof msg, "RELAY %s %s %.2f %d\n", id, argv[4], valor, reloj);
+        reloj = reloj + 1;
+        snprintf(msg, sizeof(msg), "RELAY %s %s %.2f %d\n", id, argv[4], valor, reloj);
         send(fd, msg, strlen(msg), 0);
     }
     close(fd);

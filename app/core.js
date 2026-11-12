@@ -28,7 +28,19 @@ function renderCode(src, mode, lang) {
     const b = it.blk, first = b.lines.find(l => l.t.trim()) || { t: '' }, ind = first.t.match(/^\s*/)[0];
     res.push(ind + co + (mode === 'sol' ? '▼ TODO ' : 'TODO ') + b.label + ': ' + b.desc + cc);
     if (mode === 'sol') b.lines.forEach(l => res.push(l.t));
-    else if (mode === 'alto') b.lines.forEach(l => res.push(l.key ? l.t.match(/^\s*/)[0] + co + '???' + cc : l.t));
+    else if (mode === 'alto') {
+      /* Si una línea clave abre un bloque ("if (...) {"), su "}" también se oculta: así no quedan llaves huérfanas */
+      const abiertas = [];
+      b.lines.forEach(l => {
+        const sangria = l.t.match(/^\s*/)[0];
+        if (l.key) {
+          res.push(sangria + co + '???' + cc);
+          if (/\{\s*$/.test(l.t.replace(/\/\*.*?\*\/\s*$|\/\/.*$/, ''))) abiertas.push(sangria);
+        } else if (l.t.trim() === '}' && abiertas.length && abiertas[abiertas.length - 1] === sangria) {
+          abiertas.pop();
+        } else res.push(l.t);
+      });
+    }
     else res.push('');
   }
   return res.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();

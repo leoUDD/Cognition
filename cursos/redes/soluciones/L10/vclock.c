@@ -1,6 +1,5 @@
 /* vclock.c — relojes vectoriales */
 #include <stdio.h>
-#include <string.h>
 
 #define NPROC 3
 
@@ -23,8 +22,9 @@ void vc_send(VNode *n, int out[NPROC]) {
 //- n->v[n->pid]++.
 //- for i en 0..NPROC-1: out[i] = n->v[i].
     n->v[n->pid]++; //§
-    for (int i = 0; i < NPROC; i++) //§
+    for (int i = 0; i < NPROC; i++) { //§
         out[i] = n->v[i]; //§
+    }
 //@END
 }
 
@@ -33,8 +33,11 @@ void vc_recv(VNode *n, const int rcv[NPROC]) {
 //? Al recibir, ¿cómo mezclas lo que tú sabes con lo que sabe el emisor sin perder información?
 //- Para cada componente i: si rcv[i] > n->v[i], n->v[i] = rcv[i] (máximo componente a componente).
 //- Después, incrementa tu propia posición: n->v[n->pid]++.
-    for (int i = 0; i < NPROC; i++) //§
-        if (rcv[i] > n->v[i]) n->v[i] = rcv[i]; //§
+    for (int i = 0; i < NPROC; i++) { //§
+        if (rcv[i] > n->v[i]) { //§
+            n->v[i] = rcv[i]; //§
+        }
+    }
     n->v[n->pid]++; //§
 //@END
 }
@@ -49,8 +52,12 @@ int vc_happens_before(const int a[NPROC], const int b[NPROC]) {
 //- Al final: return alguno_menor (si todos eran iguales, no es a → b).
     int alguno_menor = 0; //§
     for (int i = 0; i < NPROC; i++) {
-        if (a[i] > b[i]) return 0; //§
-        if (a[i] < b[i]) alguno_menor = 1; //§
+        if (a[i] > b[i]) { //§
+            return 0; //§
+        }
+        if (a[i] < b[i]) { //§
+            alguno_menor = 1; //§
+        }
     }
     return alguno_menor; //§
 //@END
@@ -59,8 +66,16 @@ int vc_happens_before(const int a[NPROC], const int b[NPROC]) {
 int vc_concurrent(const int a[NPROC], const int b[NPROC]) {
 //@TODO 5 | Usa vc_happens_before
 //? Dos eventos son concurrentes si ninguno ocurrió antes que el otro.
-//- return !vc_happens_before(a, b) && !vc_happens_before(b, a);
-    return !vc_happens_before(a, b) && !vc_happens_before(b, a); //§
+//- Si vc_happens_before(a, b) → return 0 (a pasó antes: no son concurrentes).
+//- Si vc_happens_before(b, a) → return 0 (b pasó antes).
+//- Si ninguno pasó antes → return 1.
+    if (vc_happens_before(a, b)) { //§
+        return 0; //§
+    }
+    if (vc_happens_before(b, a)) { //§
+        return 0; //§
+    }
+    return 1; //§
 //@END
 }
 
@@ -75,18 +90,30 @@ int main(void) {
     int ts[NPROC], snap_a[NPROC], snap_b[NPROC];
 
     vc_local(&p0);                      /* evento a */
-    memcpy(snap_a, p0.v, sizeof(ts));
+    for (int i = 0; i < NPROC; i++) {   /* foto del vector en el evento a */
+        snap_a[i] = p0.v[i];
+    }
     print_vc("P0 tras a", p0.v);
 
     vc_local(&p2);                      /* evento b — independiente */
-    memcpy(snap_b, p2.v, sizeof(ts));
+    for (int i = 0; i < NPROC; i++) {   /* foto del vector en el evento b */
+        snap_b[i] = p2.v[i];
+    }
     print_vc("P2 tras b", p2.v);
 
     vc_send(&p0, ts);                   /* P0 envía m1 */
     vc_recv(&p1, ts);                   /* P1 recibe m1 */
     print_vc("P1 tras recv m1", p1.v);
 
-    printf("a → P1_actual: %s\n", vc_happens_before(snap_a, p1.v) ? "SÍ" : "NO");
-    printf("a ∥ b: %s\n", vc_concurrent(snap_a, snap_b) ? "SÍ" : "NO");
+    if (vc_happens_before(snap_a, p1.v)) {
+        printf("a → P1_actual: SÍ\n");
+    } else {
+        printf("a → P1_actual: NO\n");
+    }
+    if (vc_concurrent(snap_a, snap_b)) {
+        printf("a ∥ b: SÍ\n");
+    } else {
+        printf("a ∥ b: NO\n");
+    }
     return 0;
 }

@@ -19,8 +19,9 @@ void handle_client(int fd) {
 //? Llegó un mensaje con msg.ts. Aplica la regla de recepción al reloj global.
 //- Si msg.ts > global_clock → global_clock = msg.ts.
 //- global_clock++.
-        if (msg.ts > global_clock) //§
+        if (msg.ts > global_clock) { //§
             global_clock = msg.ts; //§
+        }
         global_clock++; //§
 //@END
         printf("[srv clock=%d] recibido '%s'\n", global_clock, msg.payload);
@@ -50,9 +51,9 @@ void client_send(int fd, int *clock, const char *text) {
     Msg msg;
 //@TODO 4 | Incrementar reloj y adjuntar timestamp
 //? Desde el cliente: regla de envío con un reloj que llega como puntero.
-//- (*clock)++ (con paréntesis).
+//- *clock = *clock + 1 (clock es un puntero: *clock es el número).
 //- msg.ts = *clock.
-    (*clock)++; //§
+    *clock = *clock + 1; //§
     msg.ts = *clock; //§
 //@END
     snprintf(msg.payload, sizeof(msg.payload), "%s", text);

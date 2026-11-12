@@ -29,8 +29,9 @@ void lamport_recv(Node *n, int ts_recv) {
 //? Al recibir, el reloj debe quedar por delante tanto de su propio pasado como del emisor. ¿Cómo combinas los dos valores?
 //- Si el ts recibido es mayor que tu reloj, tu reloj salta a ese valor (es el max; en C se hace con un if).
 //- Después, en cualquier caso, súmale 1.
-    if (ts_recv > n->clock) //§
+    if (ts_recv > n->clock) { //§
         n->clock = ts_recv; //§
+    }
     n->clock++; //§
 //@END
 }

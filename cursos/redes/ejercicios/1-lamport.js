@@ -103,10 +103,10 @@ ejercicios.push(
  files:['L08/replay.c'],
  out:'evento 1: C=1\nevento 2: C=2\nevento 3: C=3\nevento 4: C=8\nevento 5: C=9\nevento 6: C=10\nevento 7: C=11\nevento 8: C=13',
  qs:[{q:'En el evento 6 llega ts_recv=5, pero el reloj ya es mayor. ¿Qué valor queda y por qué no retrocede?',a:'Queda <b>10</b>: max(9, 5) + 1. El max conserva el reloj local porque un reloj lógico <b>nunca retrocede</b>; si lo hiciera, el evento 6 tendría menor C que el 5, que ocurrió antes en el mismo proceso.'}],
- hints:['Los tres tipos terminan con +1; solo RECV tiene un paso antes.','El reloj llega por puntero: (*clock)++ con paréntesis.'],
- think:['Un for por las n entradas.','Si es RECV y ts_recv > *clock: *clock = ts_recv.','Siempre (*clock)++ y luego printf.'],
+ hints:['Los tres tipos terminan con +1; solo RECV tiene un paso antes.','El reloj llega por puntero: *clock es el número. Súmale 1 con *clock = *clock + 1.'],
+ think:['Un for por las n entradas.','Si es RECV y ts_recv > *clock: *clock = ts_recv.','Siempre *clock = *clock + 1 y luego printf. (Si prefieres ++, escribe (*clock)++ con paréntesis: *clock++ movería el puntero.)'],
  errors:['Escribir *clock++ (incrementa el puntero).','Imprimir antes de actualizar.'],
- rubric:[{pts:2,t:'Recorre el log'},{pts:3,t:'RECV con máximo'},{pts:2,t:'(*clock)++ con paréntesis'},{pts:3,t:'Tabla/salida y respuesta del evento 6 correctas'}]
+ rubric:[{pts:2,t:'Recorre el log'},{pts:3,t:'RECV con máximo'},{pts:2,t:'Incrementa el valor apuntado (*clock = *clock + 1)'},{pts:3,t:'Tabla/salida y respuesta del evento 6 correctas'}]
 },
 {
  id:'L09', group:'lamport', n:'Ej. 9', topic:'lamport', lvl:2, min:12, title:'Lamport sobre sockets TCP',
@@ -116,7 +116,7 @@ ejercicios.push(
      {q:'Si se usan hilos (pthread) en vez de fork(), ¿cambia el problema? ¿Qué mecanismo usarías?',a:'Con hilos la variable <b>sí se comparte</b>, pero aparece una <b>condición de carrera</b>: dos hilos pueden leer y escribir global_clock a la vez y perder actualizaciones. Se protege con un <code>pthread_mutex_t</code> (lock antes de actualizar, unlock después).'}],
  hints:['Paso 1 es la regla de recepción. Paso 2 es un evento interno. Paso 3 adjunta el reloj.','En el cliente, el reloj llega como puntero.'],
  think:['Recepción: global_clock = max(global_clock, msg.ts) + 1.','Interno: global_clock++.','Respuesta: enviar también es un evento, así que global_clock++ y resp.ts = global_clock. Si tu profesor considera el paso 2 como parte del envío, basta con resp.ts = global_clock; lo importante es justificarlo.','Cliente: (*clock)++ y msg.ts = *clock.'],
- errors:['Pensar que fork() comparte variables globales.','(*clock)++ sin paréntesis.'],
+ errors:['Pensar que fork() comparte variables globales.','Escribir *clock++ (sin paréntesis) en vez de *clock = *clock + 1: mueve el puntero y no cambia el reloj.'],
  rubric:[{pts:3,t:'TODO 1: recepción con max + 1'},{pts:1,t:'TODO 2: evento interno'},{pts:2,t:'TODO 3: resp.ts con el reloj actual'},{pts:2,t:'TODO 4: cliente incrementa y adjunta'},{pts:2,t:'Respuesta fork()'},{pts:2,t:'Respuesta hilos + mutex'}]
 },
 {
@@ -169,7 +169,7 @@ ejercicios.push(
      {q:'P1 recibe un TRANSFER de P0 después de que P0 tomó su snapshot pero antes del MARKER de P0. ¿Dónde se contabiliza?',a:'Las pipes son FIFO y P0 envía el MARKER <b>apenas</b> toma su snapshot. Un TRANSFER enviado <b>después</b> del snapshot de P0 llega detrás del MARKER, así que pertenece al "después" y <b>no se cuenta</b>. Uno enviado <b>antes</b> del snapshot de P0 llega antes del MARKER: si P1 ya había tomado su snapshot (por un MARKER de P2), se registra como <b>en tránsito</b> del canal P0→P1; si no, ya está en el contador de P1 al registrarlo.'},
      {q:'¿Pueden dos ejecuciones dar snapshots distintos pero ambos consistentes?',a:'<b>Sí.</b> El snapshot no captura el estado real en un instante, sino un <b>corte consistente</b>. Cambian el momento del snapshot, la planificación y los TRANSFER aleatorios, así que los valores cambian, pero en todos se conserva la suma (300) y ningún mensaje queda recibido sin haber sido enviado.'}],
  hints:['Por cada canal entrante necesitas saber si ya llegó su MARKER (marker_from[j]).','Un TRANSFER va a "en tránsito" solo si yo ya tomé el snapshot Y el MARKER de ese canal aún no llega.','Para leer sin bloquearte: select() con timeout 0.'],
- think:['tomar_snapshot: snap_counter = counter, snap_taken = 1, clock++ y MARKER a todos.','Recibir TRANSFER: counter += amount; si snap_taken && !marker_from[from] → transito[from] += amount.','Recibir MARKER: si no tengo snapshot, lo tomo; marker_from[from] = 1.','Completo: snapshot tomado y MARKER de los otros dos.','El enunciado pide "incrementar counter" en cada iteración, pero eso cambiaría la suma total. En la solución el evento periódico solo avanza el reloj Lamport, para que la suma se conserve.'],
+ think:['tomar_snapshot: snap_counter = counter, snap_taken = 1, clock++ y MARKER a todos.','Recibir TRANSFER: counter = counter + amount. Si snap_taken == 1 y marker_from[from] == 0 → transito[from] = transito[from] + amount.','Recibir MARKER: si no tengo snapshot, lo tomo; marker_from[from] = 1.','Completo: snapshot tomado y MARKER de los otros dos.','El enunciado pide "incrementar counter" en cada iteración, pero eso cambiaría la suma total. En la solución el evento periódico solo avanza el reloj Lamport, para que la suma se conserve.'],
  errors:['Registrar un TRANSFER como en tránsito después de recibir el MARKER de ese canal.','Olvidar que el primer MARKER también cierra su propio canal (estado vacío).','Pipes bloqueantes sin select(): el proceso se queda pegado.'],
  rubric:[{pts:2,t:'Crea las 6 pipes y cierra extremos'},{pts:3,t:'tomar_snapshot registra estado y envía MARKER'},{pts:4,t:'Registra en tránsito solo en la ventana correcta'},{pts:2,t:'Recepción con Lamport'},{pts:2,t:'Lectura no bloqueante (select)'},{pts:2,t:'Suma = 300 e impresión de resultados'},{pts:5,t:'Preguntas teóricas 2 a 5'}]
 }
