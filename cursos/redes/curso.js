@@ -10,10 +10,11 @@ Object.assign(curso, {
   solucionesProbadas: true,
   textoEjercicios: 'Todos los ejercicios de tus guías, resueltos y explicados. Cada solución en C fue compilada y probada. Intenta primero en papel; la solución aparece solo cuando la pides.',
   titulos: ['Becario de telemetría', 'Operador de enlace', 'Ingeniero de réplicas', 'Arquitecto de quórums', 'Líder electo', 'Maestro del consenso'],
-  examenes: [{ key: 'control', label: 'Control 3' }, { key: 'certamen', label: 'Certamen 2' }],
+  examenes: [{ key: 'certamen', label: 'Certamen 2' }, { key: 'control', label: 'Control 3' }],
   /* El orden de los grupos es la prioridad con que "Hoy" sugiere ejercicios */
   grupos: [
-    { id: 'lamport', nombre: 'Guía de relojes de Lamport', sub: 'Prioridad para el Control 3 y el Certamen 2' },
+    { id: 'cert2', nombre: 'Certamen 2', sub: 'Aptitud, elección de líder en C, fallas durante la elección y heartbeat (temario del certamen)' },
+    { id: 'lamport', nombre: 'Guía de relojes de Lamport', sub: 'Relojes, vector clocks y exclusión mutua' },
     { id: 'extra', nombre: 'Extras de la Unidad 2', sub: 'Quórum, 2PC, heartbeats y Raft también se programan' },
     { id: 'control', nombre: 'Control 01', sub: 'El formato real de la evaluación: esqueleto con TODO y puntaje' },
     { id: 'cert', nombre: 'Guía del Certamen 01', sub: 'Pipes, sockets y RPC: la base de todo lo demás' }
@@ -21,7 +22,8 @@ Object.assign(curso, {
   temas: [
     { id: 'pipes', n: 'Pipes y fork' }, { id: 'sockets', n: 'Sockets TCP' }, { id: 'rpc', n: 'RPC' }, { id: 'integracion', n: 'Integración IPC' },
     { id: 'lamport', n: 'Lamport y orden' }, { id: 'vector', n: 'Vector clocks' }, { id: 'consistencia', n: 'Modelos de consistencia' },
-    { id: 'cap', n: 'CAP, PACELC y 2PC' }, { id: 'replicacion', n: 'Replicación' }, { id: 'fallos', n: 'Fallos, heartbeats y quórum' }, { id: 'raft', n: 'Consenso y Raft' }
+    { id: 'cap', n: 'CAP, PACELC y 2PC' }, { id: 'replicacion', n: 'Replicación' }, { id: 'fallos', n: 'Fallos, heartbeats y quórum' }, { id: 'raft', n: 'Consenso y Raft' },
+    { id: 'aptitud', n: 'Funciones de aptitud' }, { id: 'eleccion', n: 'Elección de líder' }
   ],
   /* Pestañas extra con código propio en cursos/redes/modulos/ */
   modulos: ['relojes', 'drills']

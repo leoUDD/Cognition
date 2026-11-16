@@ -75,5 +75,10 @@ Object.assign(pruebas, {
   X5: conPrueba('raft_voto.c', 'x5'),
   X6: conPrueba('raft_append.c', 'x6'),
   X7: conPrueba('raft_eleccion.c', 'x7'),
-  X8: conPrueba('quorum_lider.c', 'x8')
+  X8: conPrueba('quorum_lider.c', 'x8'),
+  K1: conPrueba('aptitud.c', 'k1'),
+  K2: conPrueba('heartbeat.c', 'k2'),
+  K3: (() => { const p = conPrueba('bully.c', 'k3'); p.compilar.unshift({ src: ['bully.c'], out: 'bully' });
+    p.pasos.unshift({ tipo: 'ejecutar', nombre: 'Tu simulación elige a C5', cmd: './bully', espera: { contiene: ['C1 reconoce como líder a C5', 'C6 reconoce como líder a C5'] } }); return p; })(),
+  K4: conPrueba('bully_fallas.c', 'k4')
 });
