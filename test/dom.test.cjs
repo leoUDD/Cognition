@@ -103,7 +103,7 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   click('[data-act=guiaModo][data-v=completo]');
   const secs = [...d.querySelectorAll('.gpaso')].map(s => s.textContent);
   ok(secs.length >= 10 && secs.some(t => /Estructura del dron/.test(t)) && secs.some(t => /main\(\)/.test(t)), 'K3 completo: ' + secs.length + ' secciones con struct y main');
-  ok(secs.some(t => /Qué necesita saber cada dron/.test(t)), 'la sección del struct trae su pregunta');
+  ok(secs.some(t => /Qué datos del enunciado tiene cada dron/.test(t)), 'la sección del struct trae su pregunta');
   const sNodo = [...d.querySelectorAll('.gpaso')].find(s => /Estructura del dron/.test(s.textContent));
   click(sNodo.querySelector('[data-act=guiaTodo]'));
   const codNodo = [...d.querySelectorAll('.gpaso')].find(s => /Estructura del dron/.test(s.textContent)).querySelector('pre.code').textContent;
