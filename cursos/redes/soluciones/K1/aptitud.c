@@ -1,6 +1,8 @@
 /* aptitud.c — función de aptitud del enjambre CENTINELA (Control 3, pregunta 1) */
+//@PASO 1. Bibliotecas | Solo imprimes con printf: ¿qué biblioteca necesitas?
 #include <stdio.h>
 
+//@PASO 2. Constantes y pesos | ¿Cuántos drones hay, qué estados puede tener uno y cuánto pesa cada criterio? Los pesos deben sumar 1 y cada uno con su justificación.
 #define N_DRONES 6
 
 /* Estados de un dron */
@@ -12,6 +14,7 @@
 #define W_DIST 0.25   /* cercanía al perímetro: reacciona antes */
 #define W_VIS  0.35   /* visibilidad: consolida el video de la cámara multiespectral */
 
+//@PASO 3. Estructura Dron | ¿Qué datos del enunciado tiene cada dron? Agrega un campo para guardar su aptitud calculada.
 typedef struct {
     char nombre[4];      /* "C1" … "C6" */
     float bateria;       /* 0 – 100 % */
@@ -21,6 +24,7 @@ typedef struct {
     float aptitud;       /* 0 – 100; -1 si está inoperativo */
 } Dron;
 
+//@PASO 4. calcular_aptitud() — TODO 1
 /* Aptitud de UN dron. dmax = la mayor distancia entre los drones operativos. */
 float calcular_aptitud(Dron d, float dmax) {
 //@TODO 1 | Fórmula: los 3 criterios a escala 0–1 y suma con pesos
@@ -35,6 +39,7 @@ float calcular_aptitud(Dron d, float dmax) {
 //@END
 }
 
+//@PASO 5. calcular_todas() — TODO 2
 /* Calcula la aptitud de todos. Los inoperativos quedan con -1. */
 void calcular_todas(Dron v[], int n) {
 //@TODO 2 | Buscar dmax SOLO entre los operativos y calcular cada aptitud
@@ -59,6 +64,7 @@ void calcular_todas(Dron v[], int n) {
 //@END
 }
 
+//@PASO 6. ordenar() — TODO 3
 /* Ordena de mayor a menor aptitud (burbuja). */
 void ordenar(Dron v[], int n) {
 //@TODO 3 | Burbuja de mayor a menor
@@ -77,21 +83,22 @@ void ordenar(Dron v[], int n) {
 //@END
 }
 
+//@PASO 7. main() | Carga la tabla del enunciado en un arreglo de Dron. ¿En qué orden llamas a las funciones para obtener el ranking?
 int main(void) {
-    Dron enjambre[N_DRONES] = {
-        { "C1", 78, 1.2, 85, OPERATIVO,   0 },
+    Dron enjambre[N_DRONES] = { //: arreglo con una fila por dron, en el orden del struct
+        { "C1", 78, 1.2, 85, OPERATIVO,   0 }, //: { nombre, batería, distancia, visibilidad, estado, aptitud (se calcula después) }
         { "C2", 45, 0.8, 92, OPERATIVO,   0 },
-        { "C3",  0, 0.0,  0, INOPERATIVO, 0 },
+        { "C3",  0, 0.0,  0, INOPERATIVO, 0 }, //: C3 está caído: sus datos no importan
         { "C4", 91, 2.1, 70, OPERATIVO,   0 },
         { "C5", 62, 0.5, 88, OPERATIVO,   0 },
         { "C6", 83, 1.5, 45, OPERATIVO,   0 }
     };
-    calcular_todas(enjambre, N_DRONES);
-    ordenar(enjambre, N_DRONES);
-    printf("Ranking de aptitud:\n");
-    for (int i = 0; i < N_DRONES; i++) {
-        if (enjambre[i].estado == OPERATIVO) {
-            printf("%d. %s  F = %.1f\n", i + 1, enjambre[i].nombre, enjambre[i].aptitud);
+    calcular_todas(enjambre, N_DRONES); //: primero calculo la aptitud de todos…
+    ordenar(enjambre, N_DRONES); //: …después los ordeno de mayor a menor
+    printf("Ranking de aptitud:\n"); //: título
+    for (int i = 0; i < N_DRONES; i++) { //: recorro el arreglo ya ordenado…
+        if (enjambre[i].estado == OPERATIVO) { //: …sin mostrar a los caídos…
+            printf("%d. %s  F = %.1f\n", i + 1, enjambre[i].nombre, enjambre[i].aptitud); //: …y muestro posición, nombre y aptitud (%.1f = 1 decimal)
         }
     }
     return 0;

@@ -69,7 +69,7 @@ const codigoInicial = (ex, f) => renderCode(f.code, EJ.mode === 'ninguno' ? 'med
 const textoEditor = (ex, f) => borrador(ex, f) ?? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f));
 /* Quita las marcas de autor: //@TODO, //@END, guía (//? //-), explicaciones (//: …) y líneas clave (//§) */
 const sinMarcas = code => code.split('\n')
-  .filter(l => !/^\s*(\/\/|#|--)(@(TODO|END)|[?-]\s)/.test(l))
+  .filter(l => !/^\s*(\/\/|#|--)(@(TODO|END|PASO)|[?-]\s)/.test(l))
   .map(l => l.replace(/\s*(\/\/|#|--):\s.*$/, '').replace(/\s*(\/\/|#|--)§\s*$/, ''))
   .join('\n');
 

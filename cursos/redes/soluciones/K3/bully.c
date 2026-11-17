@@ -2,8 +2,10 @@
    Cada dron es su posición en el arreglo: nodos[0] = C1, nodos[1] = C2, …
    Prioridad = aptitud (gana el más apto vivo).
    Simulación simple: enviar() entrega el mensaje de inmediato llamando a procesar(). */
+//@PASO 1. Bibliotecas | Solo vas a imprimir con printf: ¿qué biblioteca necesitas?
 #include <stdio.h>
 
+//@PASO 2. Constantes | ¿Cuántos drones hay, cuál era el líder y qué tipos de mensaje tiene Bully? Dales nombre con #define.
 #define N 6               /* drones C1..C6 = posiciones 0..5 */
 #define LIDER_CAIDO 2     /* C3 (posición 2) era el líder */
 
@@ -12,6 +14,7 @@
 #define OK          1     /* "sí, yo soy más apto: yo sigo" */
 #define COORDINATOR 2     /* "gané: soy el nuevo líder" */
 
+//@PASO 3. Estructura del dron (Nodo) | ¿Qué necesita saber cada dron durante la elección? Su prioridad, si está vivo, a quién reconoce como líder, si ya preguntó y si alguien le respondió OK.
 typedef struct {
     float aptitud;       /* prioridad en la elección */
     int vivo;            /* 1 = operativo, 0 = caído */
@@ -20,44 +23,49 @@ typedef struct {
     int recibio_ok;      /* 1 = alguien más apto le respondió OK */
 } Nodo;
 
+//@PASO 4. Estructura del mensaje (Msg) | ¿Qué lleva todo mensaje? Qué tipo es, quién lo manda y a quién va.
 typedef struct {
     int tipo;            /* ELECTION, OK o COORDINATOR */
     int origen;          /* quién envía */
     int destino;         /* quién recibe */
 } Msg;
 
-Nodo nodos[N];
+//@PASO 5. Variables globales y prototipo | Todas las funciones usan el arreglo de drones. ¿Por qué hay que declarar procesar() antes de escribirla?
+Nodo nodos[N]; //: un Nodo por dron: nodos[0] es C1
 int enviados[3];                                   /* cuántos mensajes de cada tipo */
-const char *TIPO[] = { "ELECTION", "OK", "COORDINATOR" };
+const char *TIPO[] = { "ELECTION", "OK", "COORDINATOR" }; //: nombres para imprimir: TIPO[OK] vale "OK"
 
 void procesar(Msg m);    /* prototipo: enviar() la usa antes de que esté escrita */
 
+//@PASO 6. enviar() | Un mensaje a un dron caído se pierde. Si el destino está vivo, ¿qué función lo recibe?
 /* Envía un mensaje. Si el destino está caído, se pierde. Si no, le llega de inmediato. */
-void enviar(int tipo, int origen, int destino) {
-    Msg m;
-    m.tipo = tipo;
-    m.origen = origen;
-    m.destino = destino;
-    enviados[tipo] = enviados[tipo] + 1;
-    if (nodos[destino].vivo == 0) {
-        printf("  C%d -> C%d : %s (perdido: está caído)\n", origen + 1, destino + 1, TIPO[tipo]);
-        return;
+void enviar(int tipo, int origen, int destino) { //: qué tipo es, quién envía y a quién
+    Msg m; //: armo el mensaje…
+    m.tipo = tipo; //: …con su tipo…
+    m.origen = origen; //: …quién lo envía…
+    m.destino = destino; //: …y a quién va
+    enviados[tipo] = enviados[tipo] + 1; //: cuento el mensaje (solo para el resumen final)
+    if (nodos[destino].vivo == 0) { //: ¿el destino está caído?
+        printf("  C%d -> C%d : %s (perdido: está caído)\n", origen + 1, destino + 1, TIPO[tipo]); //: muestro que se perdió (posición + 1 = número del dron)
+        return; //: nadie lo recibe: salgo de la función
     }
-    printf("  C%d -> C%d : %s\n", origen + 1, destino + 1, TIPO[tipo]);
-    procesar(m);
+    printf("  C%d -> C%d : %s\n", origen + 1, destino + 1, TIPO[tipo]); //: muestro el mensaje, ej. "C1 -> C5 : ELECTION"
+    procesar(m); //: le llega al destino de inmediato
 }
 
+//@PASO 7. anunciar() | El ganador: ¿qué anota en sí mismo y a quiénes les avisa?
 /* yo ganó: se proclama líder y avisa a todos. */
-void anunciar(int yo) {
-    nodos[yo].lider = yo;
-    printf("C%d no recibió OK: se proclama líder\n", yo + 1);
-    for (int j = 0; j < N; j++) {
-        if (j != yo) {
-            enviar(COORDINATOR, yo, j);
+void anunciar(int yo) { //: yo = el ganador
+    nodos[yo].lider = yo; //: me reconozco a mí mismo como líder
+    printf("C%d no recibió OK: se proclama líder\n", yo + 1); //: aviso en pantalla
+    for (int j = 0; j < N; j++) { //: recorro a todos…
+        if (j != yo) { //: …menos a mí…
+            enviar(COORDINATOR, yo, j); //: …y les digo "soy el nuevo líder"
         }
     }
 }
 
+//@PASO 8. iniciar_eleccion() — TODO 1
 void iniciar_eleccion(int yo) {
 //@TODO 1 | ELECTION a los más aptos; si nadie responde OK, gano
 //? En Bully solo se pregunta "hacia arriba". ¿A quién le mandas ELECTION? ¿Y qué significa que nadie te responda OK?
@@ -79,6 +87,7 @@ void iniciar_eleccion(int yo) {
 //@END
 }
 
+//@PASO 9. procesar() — TODO 2
 void procesar(Msg m) {
 //@TODO 2 | Reaccionar a ELECTION, OK y COORDINATOR
 //? Te llega un ELECTION de alguien menos apto. ¿Qué le respondes y qué haces tú después?
@@ -101,8 +110,9 @@ void procesar(Msg m) {
 //@END
 }
 
+//@PASO 10. Datos del enjambre | Una fila por dron con los valores del enunciado. ¿Qué valores le pones a C3, que está caído?
 /* Datos del enjambre: aptitud (Cert. 1), vivo, líder, participo, recibio_ok */
-const Nodo INICIAL[N] = {
+const Nodo INICIAL[N] = { //: tabla inicial: { aptitud, vivo, líder, participo, recibio_ok }
     { 71.7, 1, LIDER_CAIDO, 0, 0 },   /* C1 */
     { 65.7, 1, LIDER_CAIDO, 0, 0 },   /* C2 */
     { -1,   0, LIDER_CAIDO, 0, 0 },   /* C3: caído */
@@ -111,25 +121,27 @@ const Nodo INICIAL[N] = {
     { 56.1, 1, LIDER_CAIDO, 0, 0 }    /* C6 */
 };
 
-void cargar_enjambre(void) {
-    for (int i = 0; i < N; i++) {
-        nodos[i] = INICIAL[i];
+//@PASO 11. cargar_enjambre() | Copia la tabla a nodos[] y deja los contadores en 0.
+void cargar_enjambre(void) { //: deja todo como al inicio
+    for (int i = 0; i < N; i++) { //: para cada dron…
+        nodos[i] = INICIAL[i]; //: …copio su fila (un struct se copia entero con =)
     }
-    for (int t = 0; t < 3; t++) {
-        enviados[t] = 0;
+    for (int t = 0; t < 3; t++) { //: los 3 contadores de mensajes…
+        enviados[t] = 0; //: …parten en 0
     }
 }
 
+//@PASO 12. main() | C1 detecta la caída: ¿qué función llama? Después, ¿cómo muestras que todos reconocen al nuevo líder?
 int main(void) {
-    cargar_enjambre();
-    printf("C1 declara a C3 inoperativo e inicia la elección\n");
+    cargar_enjambre(); //: cargo los datos
+    printf("C1 declara a C3 inoperativo e inicia la elección\n"); //: C1 detectó la caída (heartbeat)
     iniciar_eleccion(0);                  /* C1 = posición 0 */
-    printf("\nResultado:\n");
-    for (int i = 0; i < N; i++) {
-        if (nodos[i].vivo == 1) {
-            printf("C%d reconoce como líder a C%d\n", i + 1, nodos[i].lider + 1);
+    printf("\nResultado:\n"); //: después de la elección, muestro el resultado
+    for (int i = 0; i < N; i++) { //: recorro todos los drones…
+        if (nodos[i].vivo == 1) { //: …solo los vivos…
+            printf("C%d reconoce como líder a C%d\n", i + 1, nodos[i].lider + 1); //: …dicen a quién reconocen
         }
     }
-    printf("Mensajes: %d ELECTION, %d OK, %d COORDINATOR\n", enviados[ELECTION], enviados[OK], enviados[COORDINATOR]);
+    printf("Mensajes: %d ELECTION, %d OK, %d COORDINATOR\n", enviados[ELECTION], enviados[OK], enviados[COORDINATOR]); //: resumen de mensajes enviados
     return 0;
 }

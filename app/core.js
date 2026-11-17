@@ -8,6 +8,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function parseCode(src) {
   const out = []; let blk = null;
   for (const raw of src.replace(/\r/g, '').split('\n')) {
+    /* //@PASO título | pregunta: (opcional) da título y pregunta a la sección que empieza en la línea siguiente,
+       en la guía "Ejercicio completo". No aparece en el código. */
+    const ps = raw.match(/^\s*(?:\/\/|#|--)@PASO\s+([^|]+?)\s*(?:\|\s*(.*))?$/);
+    if (ps) { out.push({ paso: { titulo: ps[1], pregunta: ps[2] || '' } }); continue; }
     const m = raw.match(/^\s*(?:\/\/|#|--)@TODO\s+([^|]+?)\s*\|\s*(.*)$/);
     if (m) { blk = { label: m[1], desc: m[2], lines: [], pasos: [], pregunta: '' }; out.push({ blk }); continue; }
     if (/^\s*(?:\/\/|#|--)@END\s*$/.test(raw)) { blk = null; continue; }
@@ -33,6 +37,7 @@ function renderCode(src, mode, lang) {
   const [co, cc] = CMT[lang] || ['/* ', ' */'];
   const res = [];
   for (const it of parseCode(src)) {
+    if (it.paso) continue;                        /* marca de la guía, no es código */
     if (!it.blk) { res.push(it.t); continue; }   /* fuera de los TODO, //: se omite: es código dado */
     const b = it.blk, first = b.lines.find(l => l.t.trim()) || { t: '' }, ind = first.t.match(/^\s*/)[0];
     res.push(ind + co + (mode === 'sol' ? '▼ TODO ' : 'TODO ') + b.label + ': ' + b.desc + cc);

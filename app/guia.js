@@ -89,6 +89,66 @@ function bloquesDe(ex) {
   (ex.files || []).forEach((f, fi) => parseCode(f.code).forEach((it, bi) => { if (it.blk) out.push({ key: fi + ':' + bi, file: f.name, ...it.blk }); }));
   return out;
 }
+/* ===== Guía "Ejercicio completo": todo el archivo en secciones, en el orden en que conviene escribirlo =====
+   Las secciones se detectan solas (includes, defines, cada typedef, globales, cada función, main).
+   Un //@PASO título | pregunta antes de una sección le pone título y pregunta propios. */
+const PREG_SECCION = {
+  inc: 'Mira qué funciones vas a usar (printf, strcmp, socket…): cada una necesita su biblioteca.',
+  def: '¿Qué valores fijos usa el problema (cantidad de nodos, tipos de mensaje, estados, pesos)? Dales un nombre con #define.',
+  typedef: '¿Qué datos necesitas guardar de cada cosa? Cada dato es un campo con su tipo (int, float, char[]).',
+  glob: '¿Qué datos tienen que ver TODAS las funciones? ¿Alguna función se usa antes de estar escrita (prototipo)?',
+  fn: '¿Qué recibe esta función, qué devuelve y qué hace? Escríbelo en español antes del código.',
+  main: '¿En qué orden se llama todo? Normalmente: cargar los datos → ejecutar → mostrar el resultado.',
+  otro: '¿Qué hace esta parte?'
+};
+function sinCadenas(t) { return t.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '""').replace(/\/\*.*?\*\/|\/\/.*$/g, ''); }
+function seccionesDe(ex) {
+  const out = [];
+  (ex.files || []).forEach((f, fi) => {
+    /* aplana el archivo: líneas dadas y líneas de los TODO (ya resueltas), con sus explicaciones */
+    const lineas = []; let pasoMarcado = null;
+    parseCode(f.code).forEach(it => {
+      if (it.paso) { pasoMarcado = it.paso; return; }
+      if (it.blk) { it.blk.lines.forEach((l, k) => lineas.push({ t: l.t, expl: l.expl, todo: k === 0 ? it.blk : null })); return; }
+      lineas.push({ t: it.t, expl: it.expl, marca: pasoMarcado }); pasoMarcado = null;
+    });
+    let prof = 0, actual = null, comentarios = [], enComentario = false, marcaPendiente = null;
+    const nueva = (tipo, titulo, marca) => {
+      actual = { key: 'f' + fi + ':' + out.length, file: f.name, tipo, conMarca: !!marca, titulo: marca ? marca.titulo : titulo, pregunta: marca && marca.pregunta ? marca.pregunta : PREG_SECCION[tipo], lines: comentarios.slice(), pasos: [] };
+      comentarios = []; out.push(actual);
+    };
+    lineas.forEach(l => {
+      const c = sinCadenas(l.t), tr = l.t.trim();
+      /* comentario de varias líneas fuera de las funciones: se pega a la sección siguiente */
+      if (l.marca) marcaPendiente = l.marca;
+      if (prof === 0 && !l.todo && (enComentario || (/^\/\*/.test(tr) && !/\*\//.test(tr)))) {
+        enComentario = !/\*\//.test(tr); comentarios.push(l); return;
+      }
+      if (prof === 0 && !l.todo) {
+        let tipo = null, titulo = '';
+        if (/^#\s*include/.test(tr)) { tipo = 'inc'; titulo = 'Bibliotecas (#include)'; }
+        else if (/^#\s*define/.test(tr)) { tipo = 'def'; titulo = 'Constantes (#define)'; }
+        else if (/^typedef\b/.test(tr)) { tipo = 'typedef'; titulo = 'Estructura (typedef struct)'; }
+        else if (/^[A-Za-z_][\w\s\*]*\bmain\s*\(/.test(tr)) { tipo = 'main'; titulo = 'main(): el programa'; }
+        else if (/^[A-Za-z_][\w\s\*]*\b(\w+)\s*\([^;]*\)\s*\{?\s*$/.test(c.trim()) && !/^(if|for|while|switch|return)\b/.test(tr)) { tipo = 'fn'; titulo = 'Función ' + c.trim().match(/(\w+)\s*\(/)[1] + '()'; }
+        else if (/^(\/\*|\/\/|\*)/.test(tr) || !tr) { if (tr) comentarios.push(l); return; }
+        else tipo = 'glob';
+        if (tipo === 'glob') titulo = 'Variables globales y prototipos';
+        const agrupa = (tipo === 'inc' || tipo === 'def' || tipo === 'glob') && actual && actual.tipo === tipo && !marcaPendiente;
+        if (!agrupa) { nueva(tipo, titulo, marcaPendiente); marcaPendiente = null; }
+      }
+      if (!actual) nueva('otro', 'Inicio', null);
+      if (l.todo) {
+        if (l.todo.pasos.length) actual.pasos.push(...l.todo.pasos);
+        if (l.todo.pregunta && actual.pregunta === PREG_SECCION[actual.tipo]) actual.pregunta = l.todo.pregunta;   /* la pregunta del TODO es más específica */
+      }
+      actual.lines.push(l);
+      for (const ch of c) { if (ch === '{') prof++; if (ch === '}') prof--; }
+      if (actual.tipo === 'typedef' && prof === 0 && !actual.conMarca) { const nm = tr.match(/^\}\s*(\w+)\s*;/); if (nm) actual.titulo = 'Estructura ' + nm[1] + ' (typedef struct)'; }
+    });
+  });
+  return out.filter(x => x.lines.some(l => l.t.trim()));
+}
 /* Cada "Siguiente línea" revela una línea con su explicación; las llaves de cierre ("}") se muestran junto con la anterior */
 function gruposDeLineas(lines) {
   const g = [];
@@ -112,7 +172,11 @@ function guiaHtml(ex) {
     <li><b>Escribe primero en español</b>, como comentarios: "recibir", "si es X, responder Y". Recién después tradúcelo a C, línea por línea.</li>
     <li><b>Reconoce el patrón:</b> casi todo es una variación de servidor TCP (socket → bind → listen → accept → fork), cliente TCP (socket → connect → send/recv), pipe + fork, o las reglas de Lamport. Mira "Patrones que usa" y abre su esqueleto: tu código parte de ahí. Si un concepto no te suena, revísalo en "Conceptos que usa este ejercicio".</li>
    </ol></details>`;
+  const completo = EJ.guiaModo === 'completo';
+  const selector = `<div class="seg" role="group" aria-label="Qué guiar"><button class="${completo ? '' : 'on'}" data-act="guiaModo" data-v="todo">Solo los TODO</button><button class="${completo ? 'on' : ''}" data-act="guiaModo" data-v="completo">Ejercicio completo</button></div>`;
+  if (completo) return guiaCompletaHtml(ex, selector, metodo);
   return `<section class="card stack guia" style="gap:10px"><div class="row spread"><h3 style="margin:0">Guía paso a paso</h3><button class="btn sm" data-act="guiaCerrar">Ocultar guía</button></div>
+  ${selector}
   <p class="small muted" style="margin:0">Ve TODO por TODO. Primero responde la pregunta en tu cabeza o en la hoja; abre los pasos solo si sigues en blanco, y las líneas de código como último recurso (cada línea revelada resta un poco de XP).</p>
   ${metodo}
   ${bl.map((b, i) => {
@@ -127,6 +191,24 @@ function guiaHtml(ex) {
      ${st.lineas < total ? `<button class="btn sm" data-act="guiaLinea" data-k="${b.key}">${st.lineas ? 'Siguiente línea' : 'Mostrar la primera línea de código'} (${st.lineas}/${total})</button>` : `<span class="small muted">Bloque completo. Ahora escríbelo tú sin mirar.</span>`}</div></div>`;
   }).join('')}</section>`;
 }
+/* Guía del archivo entero: mismas reglas (pregunta → pasos → líneas), sección por sección */
+function guiaCompletaHtml(ex, selector, metodo) {
+  const secs = seccionesDe(ex), G = EJ.guia, [co, cc] = CMT[langOf(ex)] || ['// ', ''];
+  return `<section class="card stack guia" style="gap:10px"><div class="row spread"><h3 style="margin:0">Guía paso a paso</h3><button class="btn sm" data-act="guiaCerrar">Ocultar guía</button></div>
+  ${selector}
+  <p class="small muted" style="margin:0">El archivo <b>entero</b>, en el orden en que conviene escribirlo: bibliotecas → constantes → estructuras → variables globales → funciones → main. Ideal para practicar <b>Sin esqueleto</b>. Piensa la pregunta antes de revelar líneas.</p>
+  ${metodo}
+  ${secs.map((b, i) => {
+    const st = G[b.key] || { pasos: false, lineas: 0 }, grupos = gruposDeLineas(b.lines), total = grupos.length;
+    const visibles = grupos.slice(0, st.lineas).flat();
+    return `<div class="gpaso glos"><div class="gp-h"><span class="gp-n">${i + 1}</span><div><b>${esc(b.titulo)}</b>${secs.some(x => x.file !== b.file) ? ` <span class="muted small">· ${esc(b.file)}</span>` : ''}${b.pasos.length ? ' <span class="chip">tiene TODO</span>' : ''}</div></div>
+     <div class="gp-q"><span class="eyebrow">Pregúntate</span><div>${esc(b.pregunta)}</div></div>
+     ${st.pasos ? `<div class="gp-s"><span class="eyebrow">Pasos</span><ol class="clean">${b.pasos.map(p => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
+     ${visibles.length ? `<pre class="code gp-code">${highlight(visibles.map(l => comentarioArriba(l.t, l.expl, co, cc)).join('\n'), langOf(ex))}</pre>` : ''}
+     <div class="row">${!st.pasos && b.pasos.length ? `<button class="btn sm" data-act="guiaPasos" data-k="${b.key}">Ver los pasos</button>` : ''}
+     ${st.lineas < total ? `<button class="btn sm" data-act="guiaLinea" data-k="${b.key}">${st.lineas ? 'Siguiente línea' : 'Mostrar la primera línea'} (${st.lineas}/${total})</button><button class="btn sm ghost" data-act="guiaTodo" data-k="${b.key}" data-n="${total}">Mostrar sección completa</button>` : `<span class="small muted">Sección completa. Ahora escríbela tú sin mirar.</span>`}</div></div>`;
+  }).join('')}</section>`;
+}
 function penalizacionGuia() {
   const G = EJ.guia || {}; let p = 0;
   Object.entries(G).forEach(([k, v]) => { if (v.pasos) p += .5; p += (v.lineas || 0) * .25; });
@@ -138,5 +220,7 @@ Object.assign(ACT, {
   guiaAbrir() { EJ.guiaAbierta = true; EJ.verConceptos = true; render(); },
   guiaCerrar() { EJ.guiaAbierta = false; render(); },
   guiaPasos(el) { const k = el.dataset.k; EJ.guia[k] = Object.assign({ pasos: false, lineas: 0 }, EJ.guia[k], { pasos: true }); render(); },
+  guiaModo(el) { EJ.guiaModo = el.dataset.v; render(); },
+  guiaTodo(el) { const k = el.dataset.k; const s = Object.assign({ pasos: false, lineas: 0 }, EJ.guia[k]); s.lineas = +el.dataset.n; EJ.guia[k] = s; render(); },
   guiaLinea(el) { const k = el.dataset.k; const s = Object.assign({ pasos: false, lineas: 0 }, EJ.guia[k]); s.lineas++; EJ.guia[k] = s; render(); }
 });
