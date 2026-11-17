@@ -77,6 +77,7 @@ El estudiante debe poder **escribir la solución en papel**. Usa la forma más s
 - Con punteros a número, `*p = *p + 1` en vez de `(*p)++`.
 - Copiar arreglos con un `for`, no con `memcpy`.
 - `qsort`: comparadores con `if` que retornan -1, 1 o 0.
+- **Lo más simple que siga siendo correcto**: menos parámetros y variables (por ejemplo, `1 - d / dmax` en vez de min-max con `dmin`), simulaciones con llamadas directas (`enviar()` → `procesar()`) en vez de colas y bucles de eventos, y sin desempates ni casos borde que el enunciado no pida.
 - Mantén las firmas que da el enunciado (por ejemplo `Node *n` y `n->clock`) y las llamadas al sistema que el ejercicio exige (`pipe`, `fork`, `select`).
 
 En el nivel *Líneas clave ocultas*, si una línea `//§` abre un bloque (`if (...) { //§`), su `}` se oculta junto con ella; `test/llaves.test.cjs` verifica que no queden llaves huérfanas.
