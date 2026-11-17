@@ -7,7 +7,7 @@
 
 int todos_reconocen(int id) {
     for (int i = 0; i < N; i++) {
-        if (nodos[i].vivo == 1 && nodos[i].lider != id) { return 0; }
+        if (nodos[i].estado == OPERATIVO && nodos[i].lider != id) { return 0; }
     }
     return 1;
 }
@@ -15,12 +15,12 @@ int todos_reconocen(int id) {
 int main(void) {
     printf("--- A: C5 se cae después de responder OK ---\n");
     cargar_enjambre(); cae_tras_ok = 4; iniciar_eleccion(0); esperar_coordinador(0);
-    CHECK(nodos[4].vivo == 0, "C5 quedó caído");
+    CHECK(nodos[4].estado == INOPERATIVO, "C5 quedó caído");
     CHECK(todos_reconocen(0), "La elección CONCLUYE con los que quedan: todos reconocen a C1 (el más apto vivo)");
     CHECK(enviados[ELECTION] == 2, "C1 reinicia la elección tras el timeout de COORDINATOR (envía ELECTION 2 veces a C5)");
 
     printf("--- B: C2 (menos apto) se cae durante la elección ---\n");
-    cargar_enjambre(); cae_tras_ok = -1; nodos[1].vivo = 0; iniciar_eleccion(0); esperar_coordinador(0);
+    cargar_enjambre(); cae_tras_ok = -1; nodos[1].estado = INOPERATIVO; iniciar_eleccion(0); esperar_coordinador(0);
     CHECK(todos_reconocen(4), "Si cae alguien menos apto, el resultado NO cambia: gana C5");
     CHECK(enviados[ELECTION] == 1, "Sin reinicios: no hizo falta repetir la elección");
 
