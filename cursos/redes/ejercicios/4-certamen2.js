@@ -8,7 +8,8 @@ ejercicios.push(
  <tr><td>C1</td><td>78</td><td>1.2</td><td>85</td><td>Operativo</td></tr><tr><td>C2</td><td>45</td><td>0.8</td><td>92</td><td>Operativo</td></tr>
  <tr><td>C3</td><td>—</td><td>—</td><td>—</td><td>Inoperativo</td></tr><tr><td>C4</td><td>91</td><td>2.1</td><td>70</td><td>Operativo</td></tr>
  <tr><td>C5</td><td>62</td><td>0.5</td><td>88</td><td>Operativo</td></tr><tr><td>C6</td><td>83</td><td>1.5</td><td>45</td><td>Operativo</td></tr></table>
- <p>Usa los pesos <b>batería 0.40 · distancia 0.25 · visibilidad 0.35</b>. Ojo: en la distancia, <b>menor es mejor</b> (relación inversa).</p>`,
+ <p>Pesos sugeridos: <b>batería 0.40 · distancia 0.25 · visibilidad 0.35</b>. Ojo: en la distancia, <b>menor es mejor</b> (relación inversa).</p>
+ <p class="muted small">Puedes usar tu propia fórmula y tus propios pesos (por ejemplo, restar la distancia normalizada en vez de invertirla). Las pruebas no exigen números exactos: revisan que más batería y más visibilidad suban F, que el más cercano suba F, que los tres criterios influyan (misma escala), que C3 no cuente y que el orden sea de mayor a menor. La pantalla muestra tu ranking.</p>`,
  files:['K1/aptitud.c'],
  qs:[{q:'¿Por qué hay que normalizar los criterios antes de combinarlos?',a:'Porque están en <b>escalas distintas</b>: la batería va de 0 a 100 y la distancia de 0.5 a 2.1 km. Si los sumas tal cual, el criterio con números más grandes domina aunque su peso sea menor. Normalizando todo a 0–1, el peso decide cuánto importa cada criterio.'},
   {q:'¿Cómo se maneja un criterio con relación inversa (menor = mejor)? Da dos formas.',a:'<b>1) Min-max invertido:</b> <code>(dmax − d) / (dmax − dmin)</code>: el más cercano da 1 y el más lejano da 0. <b>2) Inverso suave:</b> <code>1 / (1 + d)</code>: no necesita conocer dmin ni dmax, pero nunca llega a 0. Las dos funcionan si lo justificas; lo que NO puedes hacer es sumar la distancia tal cual, porque premiarías al más lejano.'},
