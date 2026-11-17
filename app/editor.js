@@ -4,25 +4,42 @@ try { RUN.url = localStorage.getItem('cognition-runner-url') || 'http://127.0.0.
 let LUGAR = 'papel';
 try { LUGAR = localStorage.getItem('cognition-lugar') || 'papel'; } catch (e) { }
 /* ===== Tu código (borradores) =====
-   Se guarda en cada tecla dentro del progreso (S.cursos[ramo].borradores[ejercicio][archivo]),
-   así viaja con la sincronización a otros dispositivos. Si queda igual al esqueleto, no se guarda. */
+   Se guarda en cada tecla dentro del progreso: S.cursos[ramo].borradores[ejercicio]["nivel/archivo"].
+   Cada nivel de ayuda (Líneas clave ocultas · Solo los TODO · Sin esqueleto) tiene su PROPIO código,
+   y "Compilar" usa solo el del nivel elegido. Si el código queda igual al esqueleto, no se guarda. */
 const BKEY = 'cognition-borradores';   /* formato antiguo: solo en este navegador */
-function borradoresDe(ex) { return ((P.borradores || {})[ex.id]) || {}; }
-function borrador(ex, f) { return borradoresDe(ex)[f.name]; }
-function tieneBorrador(ex) { return Object.keys(borradoresDe(ex)).length > 0; }
+const claveBorrador = (nombre, modo) => (modo || EJ.mode) + '/' + nombre;
+/* Todos los borradores de un ejercicio. Los antiguos (sin nivel) pasan a "Solo los TODO". */
+function borradoresDe(ex) {
+  const b = ((P.borradores || {})[ex.id]) || {};
+  Object.keys(b).forEach(k => { if (!k.includes('/')) { if (b['medio/' + k] === undefined) b['medio/' + k] = b[k]; delete b[k]; } });
+  return b;
+}
+function borrador(ex, f) { return borradoresDe(ex)[claveBorrador(f.name)]; }
+/* ¿Hay código tuyo en el nivel actual? (modo = null: en cualquier nivel) */
+function tieneBorrador(ex, cualquierNivel) {
+  return Object.keys(borradoresDe(ex)).some(k => cualquierNivel || k.startsWith(EJ.mode + '/'));
+}
 function guardarBorrador(ex, nombre, code) {
   P.borradores = P.borradores || {};
-  const f = (ex.files || []).find(x => x.name === nombre);
-  if (f && code === codigoInicial(ex, f)) {          /* igual al esqueleto: nada que guardar */
-    if (P.borradores[ex.id]) { delete P.borradores[ex.id][nombre]; if (!Object.keys(P.borradores[ex.id]).length) delete P.borradores[ex.id]; }
+  const f = (ex.files || []).find(x => x.name === nombre), clave = claveBorrador(nombre);
+  const inicial = f ? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f)) : null;
+  if (f && code === inicial) {                      /* igual al punto de partida: nada que guardar */
+    if (P.borradores[ex.id]) { delete P.borradores[ex.id][clave]; if (!Object.keys(P.borradores[ex.id]).length) delete P.borradores[ex.id]; }
   } else {
     P.borradores[ex.id] = P.borradores[ex.id] || {};
-    P.borradores[ex.id][nombre] = code;
+    P.borradores[ex.id][clave] = code;
   }
   EJ.guardadoEn = Date.now();
   save();
 }
-function borrarBorradores(ex) { if (P.borradores) delete P.borradores[ex.id]; save(); }
+/* Borra tu código del nivel actual (los otros niveles quedan intactos) */
+function borrarBorradores(ex) {
+  const b = borradoresDe(ex);
+  Object.keys(b).forEach(k => { if (k.startsWith(EJ.mode + '/')) delete b[k]; });
+  if (P.borradores && !Object.keys(b).length) delete P.borradores[ex.id];
+  save();
+}
 /* Migración: los borradores que estaban solo en este navegador pasan al progreso (una vez) */
 (function migrarBorradores() {
   let viejos = {};
@@ -44,9 +61,9 @@ function borrarBorradores(ex) { if (P.borradores) delete P.borradores[ex.id]; sa
 })();
 /* Texto bajo el editor: dónde queda guardado tu código */
 function estadoGuardado(ex) {
-  if (!tieneBorrador(ex)) return 'Tu código se guarda automáticamente mientras escribes.';
+  if (!tieneBorrador(ex)) return 'Tu código se guarda automáticamente mientras escribes (cada nivel de ayuda guarda el suyo).';
   const donde = typeof SY !== 'undefined' && SY.code ? 'guardado y sincronizado con tu código de sincronización' : 'guardado en este navegador (crea un código de sincronización en Hoy para tenerlo en otros dispositivos)';
-  return '✓ Tu código está ' + donde + '.';
+  return '✓ Tu código de «' + MODES[EJ.mode] + '» está ' + donde + '. Cada nivel de ayuda guarda el suyo.';
 }
 const codigoInicial = (ex, f) => renderCode(f.code, EJ.mode === 'ninguno' ? 'medio' : EJ.mode, langOf(ex));
 const textoEditor = (ex, f) => borrador(ex, f) ?? (EJ.mode === 'ninguno' ? '' : codigoInicial(ex, f));
@@ -129,7 +146,7 @@ function editorHtml(ex) {
    <div class="row spread"><div class="row">
      <button class="btn primary" data-act="compilar" ${listo && !RUN.corriendo ? '' : 'disabled'}>${RUN.corriendo ? 'Compilando y probando…' : 'Compilar y probar'}</button>
      ${EJ.confBorrar ? '' : `<button class="btn sm" data-act="edBorrar"${tieneBorrador(ex) ? '' : ' disabled title="Aún no has escrito nada"'}>Borrar mi código</button>`}</div>
-   ${EJ.confBorrar ? `<div class="callout warn row spread" role="alert"><span>¿Borrar tu código de este ejercicio${files.length > 1 ? ' (los ' + files.length + ' archivos)' : ''}? Vuelve el esqueleto inicial y no se puede deshacer.</span>
+   ${EJ.confBorrar ? `<div class="callout warn row spread" role="alert"><span>¿Borrar tu código de este ejercicio en el nivel «${esc(MODES[EJ.mode])}»${files.length > 1 ? ' (los ' + files.length + ' archivos)' : ''}? Vuelve el punto de partida, los otros niveles no se tocan y no se puede deshacer.</span>
      <span class="row"><button class="btn sm danger" data-act="edBorrarSi">Sí, borrar</button><button class="btn sm" data-act="edBorrarNo">Cancelar</button></span></div>` : ''}
    <div class="muted small" id="edsave" aria-live="polite">${estadoGuardado(ex)}</div>
      <span class="muted small">Tab = 4 espacios</span></div>

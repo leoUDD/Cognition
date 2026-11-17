@@ -180,7 +180,7 @@ VIEWS.ejercicios = () => {
     ${GROUPS.map(([g, name, sub]) => { const list = EXERCISES.filter(e => e.group === g); const done = list.filter(e => P.papel[e.id]).length;
       return `<section class="grp"><h2>${name} <small>${sub} · ${done}/${list.length} hechos</small></h2><div class="grid g2 ex-list">${list.map(e => {
         const s = P.papel[e.id], due = s && s.due <= t;
-        return `<button class="card" data-act="openEx" data-id="${e.id}"><div class="row spread"><b>${esc(e.n)} · ${esc(e.title)}</b><span class="row" style="gap:6px">${typeof tieneBorrador === 'function' && e.files && tieneBorrador(e) ? '<span class="chip" title="Tienes código guardado en este ejercicio">✎ código guardado</span>' : ''}<span class="chip ${due ? 'warn' : s ? 'good' : ''}">${due ? 'repasar hoy' : s ? s.best + '%' : 'nuevo'}</span></span></div>
+        return `<button class="card" data-act="openEx" data-id="${e.id}"><div class="row spread"><b>${esc(e.n)} · ${esc(e.title)}</b><span class="row" style="gap:6px">${typeof tieneBorrador === 'function' && e.files && tieneBorrador(e, true) ? '<span class="chip" title="Tienes código guardado en este ejercicio">✎ código guardado</span>' : ''}<span class="chip ${due ? 'warn' : s ? 'good' : ''}">${due ? 'repasar hoy' : s ? s.best + '%' : 'nuevo'}</span></span></div>
         <span class="muted small">${TNAME[e.topic] || ''} · ${'●'.repeat(e.lvl)}${'○'.repeat(3 - e.lvl)} · ~${e.min} min${e.files ? ' · código ' + (LANG_NAME[langOf(e)] || langOf(e)) : ' · teoría'}</span></button>`; }).join('')}</div></section>`; }).join('')}</div>`;
   }
   const ex = curEx(), R = earned(), files = ex.files || [], f = files[EJ.file] || null;

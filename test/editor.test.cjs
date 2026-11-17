@@ -44,7 +44,7 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   /* borrador persiste y se puede reiniciar */
   w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="L06"]'); await sleep(20);
   ok(/n->clock\+\+\n/.test(d.querySelector('#ed').value) || d.querySelector('#ed').value.includes('n->clock++\n'), 'el borrador se conserva al volver');
-  ok(typeof w.eval("P.borradores.L06['reloj.c']") === 'string', 'el código queda guardado en el progreso (se sincroniza)');
+  ok(typeof w.eval("P.borradores.L06['medio/reloj.c']") === 'string', 'el código queda guardado en el progreso (se sincroniza)');
   ok(w.eval("JSON.parse(localStorage.getItem(KEY)).cursos.redes.borradores.L06") !== undefined, 'y en el almacenamiento local del progreso');
   ok(/guardado/.test(d.querySelector('#edsave').textContent), 'avisa que el código está guardado: ' + d.querySelector('#edsave').textContent);
   w.eval("EJ.sel = null; render()");
@@ -56,6 +56,21 @@ const esperarFin = async () => { for (let i = 0; i < 400 && w.eval('RUN.corriend
   click('[data-act=edBorrar]'); click('[data-act=edBorrarSi]');
   ok(/TODO 3/.test(d.querySelector('#ed').value) && !w.eval("(P.borradores||{}).L06"), 'confirmar borra el código y vuelve el esqueleto');
   ok(d.querySelector('[data-act=edBorrar]').disabled, 'sin código propio, el botón Borrar queda desactivado');
+  /* cada nivel de ayuda tiene su propio código */
+  escribir(d.querySelector('#ed').value + '\n/* codigo de solo los TODO */');
+  click('[data-act=exMode][data-v="ninguno"]');
+  ok(d.querySelector('#ed').value === '', '"Sin esqueleto" parte vacío aunque haya código en "Solo los TODO"');
+  escribir('/* codigo sin esqueleto */');
+  click('[data-act=exMode][data-v="medio"]');
+  ok(/codigo de solo los TODO/.test(d.querySelector('#ed').value) && !/sin esqueleto/.test(d.querySelector('#ed').value), 'volver a "Solo los TODO" muestra SU código, intacto');
+  click('[data-act=exMode][data-v="ninguno"]');
+  ok(d.querySelector('#ed').value === '/* codigo sin esqueleto */', 'y "Sin esqueleto" conserva el suyo');
+  ok(w.eval("textoEditor(curEx(), curEx().files[0])") === '/* codigo sin esqueleto */', 'compilar usa solo el código del nivel elegido');
+  click('[data-act=edBorrar]'); click('[data-act=edBorrarSi]');
+  click('[data-act=exMode][data-v="medio"]');
+  ok(/codigo de solo los TODO/.test(d.querySelector('#ed').value), 'borrar en un nivel no toca el código de los otros');
+  click('[data-act=edBorrar]'); click('[data-act=edBorrarSi]');
+  ok(!w.eval("(P.borradores||{}).L06"), 'borrar en todos los niveles deja el ejercicio sin borradores');
   /* escribir algo y dejarlo igual al esqueleto no ocupa espacio */
   const esq = d.querySelector('#ed').value; escribir(esq + 'x'); escribir(esq);
   ok(!w.eval("(P.borradores||{}).L06"), 'si el código vuelve a ser el esqueleto, no se guarda nada');
