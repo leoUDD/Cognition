@@ -11,8 +11,8 @@ const fallo = (curso, msg) => errores.push(`[${curso}] ${msg}`);
 
 function cargarCurso(dir) {
   const base = path.join(CURSOS_DIR, dir);
-  const curso = {}, ejercicios = [], tarjetas = [], glosario = [], claves = {}, referencia = [], usaPatrones = {};
-  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario, claves, referencia, usaPatrones }, { filename: f });
+  const curso = {}, ejercicios = [], tarjetas = [], glosario = [], claves = {}, referencia = [], usaPatrones = {}, teoria = [];
+  const correr = f => vm.runInNewContext(fs.readFileSync(f, 'utf8'), { curso, ejercicios, tarjetas, glosario, claves, referencia, usaPatrones, teoria }, { filename: f });
   if (!fs.existsSync(path.join(base, 'curso.js'))) { fallo(dir, 'falta curso.js'); return null; }
   correr(path.join(base, 'curso.js'));
   const ls = d => fs.existsSync(d) ? fs.readdirSync(d).filter(f => f.endsWith('.js')).sort().map(f => path.join(d, f)) : [];
@@ -21,6 +21,7 @@ function cargarCurso(dir) {
   if (fs.existsSync(path.join(base, 'glosario.js'))) correr(path.join(base, 'glosario.js'));
   if (fs.existsSync(path.join(base, 'claves.js'))) correr(path.join(base, 'claves.js'));
   if (fs.existsSync(path.join(base, 'referencia.js'))) correr(path.join(base, 'referencia.js'));
+  if (fs.existsSync(path.join(base, 'teoria.js'))) correr(path.join(base, 'teoria.js'));
   const rids = new Set();
   referencia.forEach(r => {
     if (!r.id || !r.titulo || !(r.texto || r.codigo)) fallo(id, `referencia ${r.id || '?'}: necesita id, titulo y texto o codigo`);
@@ -101,8 +102,23 @@ function cargarCurso(dir) {
     if (gids.has(g.id)) fallo(id, `glosario ${g.id}: id repetido`); gids.add(g.id);
   });
   glosario.forEach(g => (g.ver || []).forEach(v => { if (!gids.has(v)) fallo(id, `glosario ${g.id}: "ver" apunta a ${v}, que no existe`); }));
+  /* teoría: temas con subtemas; cada subtema necesita algo que leer */
+  const teIds = new Set();
+  teoria.forEach(t => {
+    if (!t.id || !t.titulo || !t.resumen || !Array.isArray(t.sub) || !t.sub.length) { fallo(id, `teoría ${t.id || '?'}: necesita id, titulo, resumen y sub (lista no vacía)`); return; }
+    if (teIds.has(t.id)) fallo(id, `teoría ${t.id}: id repetido`); teIds.add(t.id);
+    const sIds = new Set();
+    t.sub.forEach(s => {
+      const q = `teoría ${t.id}/${s.id || '?'}`;
+      if (!s.id || !s.titulo || !s.resumen) fallo(id, `${q}: necesita id, titulo y resumen`);
+      if (sIds.has(s.id)) fallo(id, `${q}: id repetido`); sIds.add(s.id);
+      if (!(s.texto || s.pasos || s.tabla)) fallo(id, `${q}: necesita texto, pasos o tabla`);
+      if (s.tabla && (!Array.isArray(s.tabla.cols) || !Array.isArray(s.tabla.filas) || s.tabla.filas.some(f => f.length !== s.tabla.cols.length))) fallo(id, `${q}: cada fila de la tabla debe tener tantas celdas como columnas`);
+      (s.ejercicios || []).forEach(e => { if (!ids.has(e)) fallo(id, `${q}: el ejercicio ${e} no existe`); });
+    });
+  });
   const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');
-  return { config: { ...curso, id, ejercicios, tarjetas, glosario, referencia }, modulos };
+  return { config: { ...curso, id, ejercicios, tarjetas, glosario, referencia, teoria }, modulos };
 }
 
 const dirs = fs.readdirSync(CURSOS_DIR).filter(d => fs.statSync(path.join(CURSOS_DIR, d)).isDirectory() && (todos || !d.startsWith('_'))).sort();
@@ -114,7 +130,7 @@ const read = f => fs.readFileSync(path.join(APP, f), 'utf8');
 const sinExports = js => js.replace(/if \(typeof module !== 'undefined'\) module\.exports[^\n]*/g, '');
 const js = [
   'const CURSOS = ' + JSON.stringify(cursos.map(c => c.config)) + ';',
-  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'), read('guia.js'), read('referencia.js'),
+  sinExports(read('core.js')), read('sync.js'), read('ui.js'), read('editor.js'), read('guia.js'), read('referencia.js'), read('teoria.js'),
   ...cursos.map(c => c.modulos),
   'activarCurso(S.curso); route(); syncPull();'
 ].join('\n');

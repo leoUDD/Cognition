@@ -77,6 +77,7 @@ function tabsCurso() {
   const t = [['hoy', 'Hoy']];
   if (EXERCISES.length) t.push(['ejercicios', 'Ejercicios']);
   (CUR.modulos || []).forEach(m => { if (MODULOS[m]) t.push([m, MODULOS[m].nombre]); });
+  if ((CUR.teoria || []).length) t.push(['teoria', 'Teoría']);
   if (CARDS.length) t.push(['tarjetas', 'Tarjetas']);
   if ((CUR.glosario || []).length) t.push(['glosario', 'Glosario']);
   if ((CUR.referencia || []).length) t.push(['referencia', CUR.referenciaNombre || 'Referencia']);
@@ -87,7 +88,7 @@ function tabsCurso() {
 const SCROLLABLES = ['.ws-izq', '.ws-der', '#ed', '.gpaso pre.code'];
 let ultimaVista = '';
 function render() {
-  const vista = cur + '|' + (cur === 'ejercicios' ? (EJ.sel || '') : '');
+  const vista = cur + '|' + (cur === 'ejercicios' ? (EJ.sel || '') : cur === 'teoria' && typeof TE !== 'undefined' ? (TE.tema || '') + '/' + (TE.sub || '') : '');
   const misma = vista === ultimaVista, guardado = [], y = window.scrollY;
   if (misma) SCROLLABLES.forEach(sel => document.querySelectorAll('#view ' + sel).forEach((el, i) => guardado.push([sel, i, el.scrollTop, el.scrollLeft])));
   renderHeader();

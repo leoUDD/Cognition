@@ -115,6 +115,26 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   ok(!/\/\/[:§]/.test(w.eval("sinMarcas(EXERCISES.find(e=>e.id==='L10').files[0].code)")), 'el código para compilar no lleva marcas //: ni //§');
   w.eval("EJ.sel = null; render()"); click('[data-act=openEx][data-id="C01A"]');
   ok([...d.querySelectorAll('.card.glos .term')].some(t => /TCP|checksum|puerto/i.test(t.textContent)), 'el enunciado del Control 01 marca TCP, checksum o puerto');
+  /* teoría: temas → subtemas → explicación, y progreso de lectura */
+  await go('teoria');
+  const nTemas = w.eval("CUR.teoria.length");
+  ok(d.querySelectorAll('[data-act=teTema]').length === nTemas && nTemas >= 5, 'teoría: una tarjeta por tema (' + nTemas + ')');
+  click('[data-act=teTema][data-id=algoritmos]');
+  const subs = [...d.querySelectorAll('[data-act=teSub]')];
+  ok(subs.length >= 8 && subs.some(b => /Bully/.test(b.textContent)) && subs.some(b => /Raft/.test(b.textContent)), 'el tema de algoritmos tiene un subtema por algoritmo: ' + subs.length);
+  ok(d.querySelector('.te-comp'), 'hay un subtema de comparación');
+  click('[data-act=teSub][data-id=comparacion]');
+  ok(d.querySelector('.te-tsec table th') && /Bully/.test(d.querySelector('.te-tsec table').textContent) && /Paxos/.test(d.querySelector('.te-tsec table').textContent), 'la comparación muestra la tabla de algoritmos');
+  ok(w.eval("P.teoria['algoritmos/comparacion']") === 1, 'abrir un subtema lo marca como leído');
+  click('[data-act=teSub][data-id=2pc]');
+  ok(/2PC/.test(d.querySelector('h1').textContent), 'el botón anterior lleva al subtema anterior');
+  click('[data-act=teVolver]');
+  ok(/1\/11 leídos|2\/11 leídos/.test(d.querySelector('[data-act=teTema][data-id=algoritmos]').textContent), 'la tarjeta del tema muestra cuántos subtemas leíste');
+  click('[data-act=teTema][data-id=algoritmos]'); click('[data-act=teSub][data-id=bully]');
+  click('[data-act=openEx][data-id=K3]');
+  await sleep(20);
+  ok(w.location.hash === '#ejercicios' && w.eval('EJ.sel') === 'K3', 'Practícalo abre el ejercicio');
+  w.eval('EJ.sel = null');
   /* vista glosario + búsqueda */
   await go('glosario'); const n0 = d.querySelectorAll('.glos-list .card').length;
   ok(n0 > 90, 'glosario con ' + n0 + ' términos');

@@ -215,3 +215,15 @@ h2.ref-g{margin:12px 0 0}
 
 .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 .btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Teoría */
+.te-card{display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;font:inherit;color:inherit}.te-card:hover{border-color:var(--accent)}
+.te-card h3{margin:0}.te-card p{margin:0}.te-card .bar{height:6px}
+.te-comp{border-style:dashed}
+.te-art>*{max-width:760px}.te-art>.te-tsec{max-width:none}.te-art h2{font-size:1.15rem;margin:0 0 8px}
+.te-texto p{margin:0 0 12px;line-height:1.6}.te-texto p:last-child{margin-bottom:0}.te-texto ul,.te-texto ol{margin:0 0 12px;padding-left:22px;line-height:1.6}
+.te-pasos{margin:0;padding-left:24px;line-height:1.6}.te-pasos li{margin-bottom:6px}
+.te-tabla{overflow-x:auto}.te-tabla table th[scope=row]{background:var(--card-2);white-space:nowrap}.te-tabla td{vertical-align:top}
+.te-ej{background:var(--card-2)}.te-ej div{line-height:1.6;margin-top:6px}
+.callout ul{margin:6px 0 0;padding-left:20px}.callout .eyebrow{display:block;margin-bottom:4px}
+.te-nav{margin-top:8px}

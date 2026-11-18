@@ -153,6 +153,28 @@ Object.assign(pruebas, {
 - Al final de `referencia.js`, `Object.assign(usaPatrones, { EJ1: ['id-patron', …] })` indica qué patrones usa cada ejercicio. Aparecen como "Patrones que usa" y abren el panel en ese esqueleto.
 - Verifica que cada fragmento compile.
 
+## Teoría (`teoria.js`, opcional)
+
+Agrega la pestaña **Teoría**: temas en tarjetas, cada tema con subtemas, y cada subtema con su explicación.
+
+```js
+teoria.push({ id: 'algoritmos', unidad: 'Unidad 2', titulo: 'Algoritmos de elección', resumen: 'Una línea para la tarjeta del tema.',
+  intro: 'Párrafo al abrir el tema (HTML).',
+  sub: [
+    { id: 'bully', titulo: 'Bully', resumen: 'Una línea para la subtarjeta.',
+      idea: 'La idea en una frase.', texto: '<p>Explicación en HTML.</p>',
+      pasos: ['Paso 1', 'Paso 2'], tabla: { titulo: 'Opcional', cols: ['', 'A', 'B'], filas: [['Fila', 'a', 'b']] },
+      ejemplo: 'HTML', codigo: 'código en el lenguaje del ramo', ojo: ['Error típico'], recuerda: 'Para la evaluación',
+      ejercicios: ['K3'] },
+    { id: 'comparacion', titulo: 'Comparación', comparacion: true, resumen: '…', tabla: { … } }
+  ] });
+```
+
+- Cada subtema necesita `texto`, `pasos` o `tabla`; todo lo demás es opcional. Cada fila de una tabla debe tener tantas celdas como columnas.
+- `comparacion: true` marca el subtema con la etiqueta **Comparación**. Un tema con varias alternativas (algoritmos, modelos) debería terminar con una.
+- Los ids no se renombran: el progreso de lectura se guarda como `tema/subtema`.
+- Basa las explicaciones en los materiales del profesor (tarjetas, clases, guías). Los términos del glosario se enlazan solos.
+
 ## Tarjetas (`tarjetas.js`)
 
 `tarjetas.push({ id, t: '<id de tema>', q: '<pregunta HTML>', a: '<respuesta HTML>' })`.
