@@ -175,6 +175,20 @@ teoria.push({ id: 'algoritmos', unidad: 'Unidad 2', titulo: 'Algoritmos de elecc
 - Los ids no se renombran: el progreso de lectura se guarda como `tema/subtema`.
 - Basa las explicaciones en los materiales del profesor (tarjetas, clases, guías). Los términos del glosario se enlazan solos.
 
+## Banco de alternativas (`preguntas.js`, opcional)
+
+Agrega la pestaña **Alternativas**: práctica por sección (con explicación al responder), repaso de falladas y un simulacro cronometrado que respeta los pesos del temario.
+
+```js
+Object.assign(examen, { titulo: 'Examen de alternativas', preguntas: 60, minutos: 120, exigencia: 0.6, meta: 0.7,
+  secciones: [{ id: 'posix', titulo: 'POSIX en C', peso: 15, teoria: 'ipc', tema: 'pipes' }] });
+preguntas.push({ id: 'po01', sec: 'posix', q: 'Enunciado (HTML)', ops: ['La correcta', 'Distractor', 'Distractor'], exp: 'Por qué', code: 'opcional' });
+```
+
+- **La primera alternativa es la correcta**; se barajan al mostrarlas. Entre 3 y 5 alternativas, sin repetir.
+- Los distractores deben tener **largo y forma parecidos** a la correcta: si la correcta siempre es la más larga, se aprende a adivinar.
+- `peso` es cuántas preguntas de esa sección trae el simulacro; `teoria` enlaza a un tema de `teoria.js` y `tema` a `curso.temas`.
+
 ## Tarjetas (`tarjetas.js`)
 
 `tarjetas.push({ id, t: '<id de tema>', q: '<pregunta HTML>', a: '<respuesta HTML>' })`.

@@ -78,6 +78,7 @@ function tabsCurso() {
   if (EXERCISES.length) t.push(['ejercicios', 'Ejercicios']);
   (CUR.modulos || []).forEach(m => { if (MODULOS[m]) t.push([m, MODULOS[m].nombre]); });
   if ((CUR.teoria || []).length) t.push(['teoria', 'Teoría']);
+  if (CUR.examen) t.push(['alternativas', 'Alternativas']);
   if (CARDS.length) t.push(['tarjetas', 'Tarjetas']);
   if ((CUR.glosario || []).length) t.push(['glosario', 'Glosario']);
   if ((CUR.referencia || []).length) t.push(['referencia', CUR.referenciaNombre || 'Referencia']);
@@ -150,7 +151,7 @@ const MODES = { alto: 'Líneas clave ocultas', medio: 'Solo los TODO', ninguno: 
 const MMULT = { alto: .6, medio: 1, ninguno: 1.5 };
 const exPts = ex => ex.rubric ? ex.rubric.reduce((a, r) => a + r.pts, 0) : (ex.fields || []).length;
 const curEx = () => EXERCISES.find(e => e.id === EJ.sel);
-function stopTimer() { if (EJ.iv) { clearInterval(EJ.iv); EJ.iv = null; } if (EJ.run) { EJ.acc += Date.now() - EJ.t0; EJ.run = false; } }
+function stopTimer() { if (typeof alParar === 'function') alParar(); if (EJ.iv) { clearInterval(EJ.iv); EJ.iv = null; } if (EJ.run) { EJ.acc += Date.now() - EJ.t0; EJ.run = false; } }
 const fmtT = ms => { const s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
 const elapsed = () => EJ.acc + (EJ.run ? Date.now() - EJ.t0 : 0);
 function tick() { const el = $('#timer'); if (!el) { stopTimer(); return; } el.textContent = fmtT(elapsed()); el.classList.toggle('over', elapsed() > curEx().min * 60000); }

@@ -472,6 +472,24 @@ teoria.push({
       ejercicios: ['L12']
     },
     {
+      id: 'linealizable', titulo: 'Linearizable, secuencial y read-your-writes', comparacion: true, resumen: 'Las variantes de consistencia que pide el examen.',
+      idea: `<b>Linearizable</b> respeta el tiempo real; <b>secuencial</b> solo el orden de cada proceso; <b>read-your-writes</b> garantiza que veas tus propias escrituras.`,
+      tabla: { cols: ['Modelo', 'Qué garantiza', 'Qué permite'],
+        filas: [['Linearizabilidad', 'Un orden global que respeta el <b>tiempo real</b>: si A termina antes de que B empiece, A va antes', 'Nada raro: se comporta como una sola copia'],
+          ['Consistencia secuencial', 'Un orden global que respeta el <b>orden de programa de cada proceso</b>', 'Que una lectura no vea una escritura que ya terminó en otro proceso'],
+          ['Read-your-writes', 'Un proceso siempre ve <b>su propia</b> escritura o una más nueva, aunque cambie de réplica', 'Que <b>otros</b> vean valores viejos un rato'],
+          ['Eventual', 'Convergencia si paran las escrituras, sin plazo', 'Lecturas viejas y conflictos']] },
+      ejemplo: `P1 escribe x = 1 y termina. Después P2 lee x = 0. <b>Secuencial: permitido</b> (el orden "lectura, luego escritura" respeta el orden de cada proceso). <b>Linearizable: prohibido</b> (la escritura terminó antes de que empezara la lectura).`
+    },
+    {
+      id: 'nwr', titulo: 'Replicación y quórums NWR', resumen: 'Síncrona vs asíncrona, y la regla W + R > N.',
+      idea: `Con N réplicas, si cada escritura espera W confirmaciones y cada lectura consulta R réplicas, <b>W + R &gt; N</b> garantiza leer el último valor.`,
+      texto: `<p><b>Síncrona:</b> se confirma cuando las réplicas ya aplicaron el cambio: consistencia fuerte, mayor latencia. <b>Asíncrona:</b> se confirma de inmediato: rápido, pero si el primario cae antes de replicar, se pierden escrituras confirmadas.</p>
+<p><b>Quórums:</b> si W + R &gt; N, el conjunto que escribió y el que lee comparten al menos una réplica, que tiene el valor nuevo.</p>`,
+      tabla: { titulo: 'N = 3', cols: ['W', 'R', '¿W + R &gt; N?', 'Efecto'],
+        filas: [['2', '2', 'Sí (4)', 'Equilibrado: escritura y lectura toleran una caída'], ['3', '1', 'Sí (4)', 'Lecturas rápidas; si cae una réplica, no se puede escribir'], ['1', '3', 'Sí (4)', 'Escrituras rápidas; las lecturas necesitan las 3'], ['1', '1', 'No (2)', 'Muy rápido, pero puede leer valores viejos']] }
+    },
+    {
       id: 'modelos', titulo: 'Comparación de modelos', comparacion: true, resumen: 'Fuerte, causal y eventual lado a lado.',
       idea: `De más fuerte a más débil: <b>fuerte</b> (todos ven lo último) → <b>causal</b> (se respeta causa-efecto) → <b>eventual</b> (algún día coinciden).`,
       tabla: { cols: ['', 'Fuerte', 'Causal', 'Eventual'],
@@ -652,6 +670,31 @@ close(fd[1]);`,
       ejercicios: ['S1', 'S2', 'C01A']
     },
     {
+      id: 'senales', titulo: 'Zombies y señales', resumen: 'waitpid, SIGCHLD, SIG_IGN, SIGPIPE y PIPE_BUF.',
+      idea: `Un <b>zombie</b> es un hijo que terminó y cuyo estado nadie recogió. Se evita con <code>waitpid</code> en un handler de <b>SIGCHLD</b> o ignorando SIGCHLD.`,
+      texto: `<ul><li><b>waitpid(pid, &amp;st, 0)</b> espera al hijo; <code>WIFEXITED(st)</code> dice si terminó con exit, y <code>WEXITSTATUS(st)</code> da su código.</li>
+<li><b>Handler de SIGCHLD:</b> <code>while (waitpid(-1, NULL, WNOHANG) &gt; 0)</code>. El while es porque las señales no se encolan: varios hijos pueden generar una sola SIGCHLD.</li>
+<li><b>signal(SIGCHLD, SIG_IGN):</b> el kernel descarta los estados y no hay zombies, pero el padre pierde la información de terminación.</li>
+<li>Los <b>handlers instalados antes del fork se heredan</b>, igual que los descriptores abiertos. La memoria se copia con <b>copy-on-write</b>.</li>
+<li><b>SIGPIPE:</b> escribir en un pipe sin lectores mata el proceso por defecto. Si se ignora o maneja, <code>write()</code> retorna -1 con <b>errno = EPIPE</b>.</li>
+<li><b>PIPE_BUF</b> (4096 en Linux): un write de hasta ese tamaño es atómico. Mayor, puede intercalarse con otros escritores.</li>
+<li><b>socketpair():</b> dos sockets conectados, bidireccionales. Con <b>SOCK_DGRAM</b> preserva los límites de cada mensaje.</li></ul>`,
+      codigo: `void handler(int s) {
+    while (waitpid(-1, NULL, WNOHANG) > 0) {
+    }
+}
+signal(SIGCHLD, handler);`
+    },
+    {
+      id: 'cierre-tcp', titulo: 'Cierre de TCP', resumen: 'FIN, RST, CLOSE_WAIT, TIME_WAIT y EADDRINUSE.',
+      idea: `<b>FIN</b> es un cierre ordenado (recv retorna 0); <b>RST</b> es abrupto (recv retorna -1 con ECONNRESET).`,
+      tabla: { cols: ['Situación', 'Qué significa'],
+        filas: [['recv() = 0', 'El otro lado cerró con FIN: cierra tú también'], ['recv() = -1, ECONNRESET', 'Llegó un RST: terminación abrupta'], ['CLOSE_WAIT', 'El remoto cerró y el local <b>aún no</b> llama a close(). Muchos sockets aquí = bug'], ['TIME_WAIT', 'El local <b>inició</b> el cierre y espera 2×MSL para absorber segmentos atrasados'], ['bind() con EADDRINUSE', 'El puerto sigue tomado por TIME_WAIT tras reiniciar rápido; se evita con SO_REUSEADDR']] },
+      ojo: [`TCP es un flujo de bytes: un recv puede traer varios mensajes o uno a medias. Hay que acumular en un buffer y cortar por el delimitador (<code>'\\n'</code>).`,
+        `<code>sscanf</code> retorna cuántos campos asignó: valida que sea el número esperado.`,
+        `<code>ctime()</code> usa un buffer estático (no es thread-safe, pero sí seguro con fork) y su texto termina en <code>'\\n'</code>.`]
+    },
+    {
       id: 'rpc', titulo: 'RPC', resumen: 'Llamar una función que se ejecuta en otra máquina.',
       idea: `<b>Remote Procedure Call</b>: llamar a una función remota como si fuera local. El <b>stub</b> (cliente) empaqueta y envía; el <b>skeleton</b> (servidor) desempaqueta, llama y responde.`,
       texto: `<p>Protocolo del curso: el cliente envía <code>CALL f args</code> y el servidor responde <code>RESULT valor</code>.</p>
@@ -667,6 +710,124 @@ close(fd[1]);`,
       tabla: { cols: ['', 'Pipe', 'Socket TCP', 'RPC'],
         filas: [['Alcance', 'Misma máquina, padre e hijos', 'Máquinas distintas por red', 'Máquinas distintas por red'], ['Dirección', 'Una (dos pipes para ida y vuelta)', 'Dos sentidos', 'Pregunta y respuesta'], ['Nivel', 'Bajo: bytes', 'Bajo: flujo de bytes', 'Alto: llamadas a funciones'], ['Se crea con', '<code>pipe()</code> antes de <code>fork()</code>', '<code>socket</code>, <code>bind</code>, <code>listen</code>, <code>accept</code> / <code>connect</code>', 'Stub y skeleton sobre un socket'], ['Uso en el curso', 'Hijos que reportan al padre', 'Servidor SELENE, relay', 'Registro de naves, dispatch table']] },
       ejercicios: ['I1', 'I2', 'I3']
+    }
+  ]
+});
+
+/* =====================================================================
+   COLAS DE MENSAJES Y MIDDLEWARE (examen)
+   ===================================================================== */
+teoria.push({
+  id: 'colas', unidad: 'Examen', titulo: 'Colas de mensajes y middleware',
+  resumen: 'Brokers, semánticas de entrega, idempotencia, Kafka, consumer groups, ACK, back-pressure y DLQ.',
+  intro: `Un <b>broker</b> de mensajes (RabbitMQ, Kafka) es un intermediario: el productor deja mensajes y el consumidor los retira cuando puede. Casi todo este tema sale de una pregunta: <b>¿qué pasa si algo falla entre enviar y procesar?</b>`,
+  sub: [
+    {
+      id: 'broker', titulo: '¿Para qué un broker?', resumen: 'Desacoplamiento temporal: productor y consumidor no necesitan estar vivos a la vez.',
+      idea: `El broker guarda los mensajes: el productor puede enviar aunque el consumidor esté caído o lento. Eso es <b>desacoplamiento temporal</b>, su beneficio principal.`,
+      texto: `<p>Sin broker, el productor llama directo al consumidor: si este está caído, la llamada falla. Con broker, el mensaje queda almacenado hasta que el consumidor se reconecte.</p>
+<p>Lo mismo sirve para <b>request-reply sobre broker</b>: la solicitud y la respuesta esperan en colas, y ninguno de los dos necesita estar activo al mismo tiempo que el otro.</p>`
+    },
+    {
+      id: 'semanticas', titulo: 'Semánticas de entrega', comparacion: true, resumen: 'At-most-once, at-least-once y exactly-once.',
+      idea: `¿Se puede <b>perder</b> o <b>duplicar</b> un mensaje? Cada semántica elige qué riesgo acepta.`,
+      tabla: { cols: ['Semántica', 'Cómo funciona', '¿Pierde?', '¿Duplica?', 'Uso'],
+        filas: [['At-most-once', 'Envía y no reintenta', 'Sí', 'No', 'Métricas, telemetría'],
+          ['At-least-once', 'Reintenta hasta recibir confirmación', 'No', '<b>Sí</b>', 'La más común; exige consumidor idempotente'],
+          ['Exactly-once', 'At-least-once + deduplicación + confirmación transaccional', 'No', 'No', 'Pagos; es la más cara']] },
+      recuerda: `Truco: "at-<b>most</b>" = como máximo una vez (0 o 1: puede perder). "at-<b>least</b>" = como mínimo una vez (1 o más: puede duplicar).`
+    },
+    {
+      id: 'idempotencia', titulo: 'Idempotencia y deduplicación', resumen: 'Por qué el consumidor no puede confiar solo en el broker.',
+      idea: `Si el <b>ACK se pierde</b>, el broker reenvía un mensaje que ya se procesó. El consumidor debe ser <b>idempotente</b> o <b>deduplicar</b>.`,
+      pasos: [`El consumidor recibe "cobrar $100 al pedido 42" y cobra.`, `Envía el ACK, pero el ACK se pierde en la red.`, `El broker no recibió confirmación: <b>reentrega</b> el mensaje.`, `Sin protección, el cliente paga dos veces.`],
+      texto: `<p>Dos soluciones:</p>
+<ul><li><b>Idempotencia:</b> diseñar la operación para que repetirla no cambie nada ("fijar estado = pagado" en vez de "sumar 100").</li>
+<li><b>Deduplicación:</b> cada mensaje trae un ID único; el consumidor guarda los IDs procesados e ignora los repetidos.</li></ul>`
+    },
+    {
+      id: 'kafka', titulo: 'Kafka: particiones y orden', resumen: 'Orden FIFO dentro de una partición; la partition key decide dónde va cada mensaje.',
+      idea: `Un topic de Kafka se divide en <b>particiones</b>. El orden se garantiza <b>dentro</b> de cada partición, no entre particiones.`,
+      texto: `<p>Cada partición es un <b>log</b> donde los mensajes se agregan al final y se leen en orden (FIFO).</p>
+<p>La <b>partition key</b> decide la partición: <b>misma key → misma partición</b>. Si los eventos de un pedido deben procesarse en orden, se usa el ID del pedido como key. Pedidos distintos pueden quedar en particiones distintas y procesarse en paralelo.</p>`
+    },
+    {
+      id: 'groups', titulo: 'Consumer groups', resumen: 'Repartir particiones entre consumidores para procesar en paralelo.',
+      idea: `Dentro de un grupo, <b>cada partición la procesa exactamente un consumidor</b> a la vez.`,
+      tabla: { titulo: 'Topic con 4 particiones', cols: ['Consumidores en el grupo', 'Qué pasa'],
+        filas: [['1', 'Procesa las 4 particiones'], ['2', '2 particiones cada uno'], ['4', '1 partición cada uno (paralelismo máximo)'], ['6', '4 trabajan y <b>2 quedan sin trabajo</b> (respaldo si alguno cae)']] },
+      texto: `<p>Más consumidores que particiones no aumenta el paralelismo. Dos grupos <b>distintos</b> reciben cada uno todos los mensajes (así funciona publish-subscribe en Kafka).</p>`
+    },
+    {
+      id: 'ack', titulo: 'ACK manual vs auto-ack', comparacion: true, resumen: 'Confirmar antes o después de procesar.',
+      idea: `<b>Manual:</b> confirmo después de procesar bien, y si fallo, el broker reentrega. <b>Auto:</b> el broker lo da por entregado de inmediato, y si fallo, se pierde.`,
+      tabla: { cols: ['', 'ACK manual', 'Auto-ack'],
+        filas: [['Cuándo se confirma', 'Después de procesar con éxito', 'Al entregar el mensaje'], ['Si el consumidor cae al procesar', 'El broker <b>reentrega</b>', 'El mensaje <b>se pierde</b>'], ['Semántica que da', 'At-least-once', 'At-most-once'], ['Riesgo', 'Duplicados', 'Pérdidas']] }
+    },
+    {
+      id: 'flujo', titulo: 'Back-pressure y dead letter queue', resumen: 'Frenar al productor y apartar los mensajes que siempre fallan.',
+      idea: `<b>Back-pressure:</b> el que recibe le pide al productor que baje la tasa. <b>DLQ:</b> los mensajes que fallan N veces se apartan para revisarlos.`,
+      texto: `<p><b>Back-pressure:</b> si el productor envía más rápido de lo que se procesa, las colas crecen hasta agotar memoria o perder mensajes. El consumidor o el broker <b>señalizan</b> que se reduzca el ritmo.</p>
+<p><b>Dead letter queue:</b> un mensaje mal formado fallaría en cada intento y bloquearía la cola. Tras N reintentos se mueve a la <b>DLQ</b>: el flujo normal sigue y alguien lo investiga después.</p>`
+    },
+    {
+      id: 'patrones', titulo: 'Point-to-point vs publish-subscribe', comparacion: true, resumen: 'Un receptor por mensaje, o todos los suscriptores.',
+      idea: `<b>Point-to-point:</b> cada mensaje lo consume uno solo. <b>Pub-sub:</b> cada suscriptor del topic recibe su copia.`,
+      tabla: { cols: ['', 'Point-to-point (cola)', 'Publish-subscribe (topic)'],
+        filas: [['Quién recibe', 'Exactamente un consumidor', 'Todos los suscriptores'], ['Uso típico', 'Repartir tareas entre workers', 'Notificar un evento a varios servicios'], ['Ejemplo', 'Cola de pedidos a procesar', '"Usuario registrado" → correo, analítica, bonos']] }
+    }
+  ]
+});
+
+/* =====================================================================
+   ALMACENAMIENTO DISTRIBUIDO Y PATRONES (examen)
+   ===================================================================== */
+teoria.push({
+  id: 'almacenamiento', unidad: 'Examen', titulo: 'Almacenamiento distribuido y patrones',
+  resumen: 'Sharding, WAL, Chord, read repair, event sourcing, Saga vs 2PC, UUID y gossip.',
+  intro: `Cómo se reparten y se recuperan los datos cuando no caben en una máquina, y algunos patrones que aparecen en sistemas grandes.`,
+  sub: [
+    {
+      id: 'sharding', titulo: 'Sharding por rango vs por hash', comparacion: true, resumen: 'Repartir los datos entre nodos.',
+      idea: `<b>Rango:</b> claves cercanas juntas, buenas consultas por rango, riesgo de hot spots. <b>Hash:</b> reparto parejo, malas consultas por rango.`,
+      tabla: { cols: ['', 'Por rango', 'Por hash'],
+        filas: [['Cómo reparte', 'A–F al shard 1, G–M al 2…', 'hash(clave) mod N'], ['Consultas por rango', '<b>Eficientes</b>: tocan pocos shards', '<b>Ineficientes</b>: hay que preguntar a todos'], ['Distribución de carga', 'Riesgo de <b>hot spots</b>', '<b>Uniforme</b>'], ['Ejemplo de problema', 'Particionar por timestamp: todo lo nuevo cae en el último shard', 'Buscar "todos los pedidos de marzo"']] }
+    },
+    {
+      id: 'wal', titulo: 'Write-Ahead Log (WAL)', resumen: 'Escribir primero en el log, aplicar después, y recuperar con replay.',
+      idea: `Cada escritura se registra <b>primero</b> en un log secuencial y <b>después</b> se aplica a la estructura principal. Tras un crash, se hace <b>replay</b> del log.`,
+      texto: `<p>Escribir al final de un archivo secuencial es rápido y seguro. Si el sistema se cae después de confirmar pero antes de aplicar el cambio, la operación sigue en el WAL: al reiniciar se re-ejecutan las entradas no aplicadas y no se pierde nada confirmado.</p>
+<p>Es la misma idea que el log de replicación y el log de Raft.</p>`
+    },
+    {
+      id: 'chord', titulo: 'DHT y Chord', resumen: 'Anillo de nodos y finger table para buscar en O(log N).',
+      idea: `Nodos y claves se ubican en un <b>anillo</b>. Cada clave la guarda su <b>sucesor</b>. La <b>finger table</b> permite encontrarla en <b>O(log N)</b> saltos.`,
+      texto: `<p>Con solo un puntero al sucesor, buscar una clave recorre el anillo: O(N) saltos. La <b>finger table</b> guarda referencias a nodos a distancias <b>exponenciales</b> (1, 2, 4, 8…): cada salto reduce la distancia a la mitad, y bastan O(log N) saltos.</p>
+<p><b>Ingreso de un nodo:</b> contacta a un nodo existente, encuentra su posición, <b>asume el rango de claves</b> que ahora le corresponde (tomándolo de su sucesor) y se actualizan las finger tables. No hay coordinador central.</p>`
+    },
+    {
+      id: 'read-repair', titulo: 'Read repair', resumen: 'Corregir réplicas atrasadas aprovechando las lecturas.',
+      idea: `Al leer de varias réplicas, si alguna devuelve un valor viejo, el coordinador le <b>envía el valor más reciente</b>.`,
+      texto: `<p>Es una forma de que las réplicas converjan (consistencia eventual) sin un proceso aparte: las mismas lecturas reparan los datos. Lo usan Cassandra y DynamoDB.</p>`
+    },
+    {
+      id: 'event-sourcing', titulo: 'Event sourcing', resumen: 'Guardar todos los eventos, no solo el estado actual.',
+      idea: `Se guarda la <b>secuencia completa de eventos inmutables</b>. El estado actual se obtiene reproduciéndolos.`,
+      ejemplo: `En vez de "saldo = 50", se guarda: depósito 100 → retiro 30 → retiro 20. Reproduciendo los eventos se obtiene 50, y también el saldo que había en <b>cualquier momento</b> del pasado.`,
+      texto: `<p>Ventajas: <b>auditoría</b> completa (se sabe cada cambio y cuándo) y poder <b>reconstruir</b> el estado en cualquier punto del tiempo.</p>`
+    },
+    {
+      id: 'saga', titulo: 'Saga vs 2PC', comparacion: true, resumen: 'Transacciones distribuidas con compensación o con bloqueo.',
+      idea: `<b>2PC</b> bloquea recursos en todos hasta decidir. La <b>Saga</b> confirma cada paso localmente y, si algo falla, ejecuta <b>compensaciones</b>.`,
+      tabla: { cols: ['', 'Saga', '2PC'],
+        filas: [['Cómo funciona', 'Cadena de transacciones locales', 'PREPARE a todos, luego COMMIT o ABORT'], ['Si un paso falla', 'Acciones compensatorias deshacen los pasos anteriores', 'ABORT en todos'], ['Bloqueo de recursos', 'No', 'Sí, hasta que el coordinador decide'], ['Si cae el coordinador', 'Cada paso ya está confirmado', 'Los participantes quedan bloqueados'], ['Consistencia', 'Eventual', 'Atómica (fuerte)']] },
+      ejemplo: `Viaje: reservar vuelo → reservar hotel → cobrar. Si falla el cobro, la Saga ejecuta "cancelar hotel" y "cancelar vuelo".`
+    },
+    {
+      id: 'uuid-gossip', titulo: 'UUID v4 y gossip', resumen: 'Identificadores sin coordinador y propagación epidémica.',
+      idea: `Dos formas de evitar un coordinador central: <b>UUID v4</b> para generar IDs únicos y <b>gossip</b> para propagar información.`,
+      texto: `<p><b>UUID v4:</b> 128 bits, de los cuales <b>122 son aleatorios</b>. La probabilidad de colisión es despreciable, así que cada nodo genera IDs <b>sin coordinarse</b>.</p>
+<p><b>Gossip:</b> cada nodo comparte su estado con un <b>subconjunto aleatorio</b> de pares, como un rumor. La información se propaga de forma <b>epidémica</b> y llega a todos en unas <b>O(log N) rondas</b>, con convergencia probabilística y sin coordinador.</p>`
     }
   ]
 });
