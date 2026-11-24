@@ -10,7 +10,9 @@ Object.assign(examen, {
     { id: 'colas', titulo: 'Colas de mensajes y middleware', peso: 10, teoria: 'colas' },
     { id: 'relojes', titulo: 'Relojes lógicos', peso: 3, teoria: 'tiempo', tema: 'lamport' },
     { id: 'almacen', titulo: 'Almacenamiento distribuido', peso: 5, teoria: 'almacenamiento', tema: 'replicacion' },
-    { id: 'patrones', titulo: 'Patrones y conceptos adicionales', peso: 4, teoria: 'almacenamiento' }
+    { id: 'patrones', titulo: 'Patrones y conceptos adicionales', peso: 4, teoria: 'almacenamiento' },
+    { id: 'seguridad', titulo: 'Seguridad (Unidad IV, por si acaso)', peso: 0, teoria: 'seguridad' },
+    { id: 'cloud', titulo: 'Cloud y Docker (por si acaso)', peso: 0, teoria: 'seguridad' }
   ]
 });
 const Q = (sec, id, q, ops, exp, code) => preguntas.push({ sec, id, q, ops, exp, code });
@@ -383,3 +385,76 @@ Q('colas', 'cq23', '¿Qué tecnología de mensajería se asocia en clase a <b>al
 Q('colas', 'cq24', 'En el proyecto, el game server ejecuta <code>PUBLISH game-events …</code> en Redis, y la UI, el leaderboard y el logger ejecutan <code>SUBSCRIBE game-events</code>. ¿Qué ocurre con cada evento?',
   ['Lo reciben todos los suscriptores del canal', 'Lo recibe solo el primer suscriptor que lo pida', 'Se reparte entre los suscriptores por turnos', 'Queda guardado hasta que lo lea el logger'],
   'Es <b>publish-subscribe</b>: cada evento publicado en el canal <code>game-events</code> se entrega a <b>todos</b> los suscriptores. (Redis Pub/Sub no guarda mensajes: un suscriptor desconectado en ese momento se lo pierde).');
+
+/* =================== Fuera del temario: seguridad (Unidad IV) =================== */
+Q('seguridad', 'sg01', 'De los tres pilares de la seguridad (CIA), ¿cuál se protege con <b>HMAC, firma digital y hash</b>?',
+  ['Integridad', 'Confidencialidad', 'Disponibilidad', 'Autorización'],
+  '<b>Integridad</b>: que los datos no se modificaron sin permiso. La <b>confidencialidad</b> se protege con cifrado, TLS y control de acceso; la <b>disponibilidad</b>, con replicación, failover y mitigación de DDoS.');
+Q('seguridad', 'sg02', '¿Qué diferencia hay entre <b>autenticación</b> y <b>autorización</b>?',
+  ['Autenticación: quién eres; autorización: qué puedes hacer, y va después', 'Autenticación: qué puedes hacer; autorización: quién eres, y va primero', 'Son sinónimos: ambas verifican la contraseña en cada petición', 'La autorización va primero, y solo si pasa se verifica la identidad'],
+  '<b>Autenticación</b> = ¿quién eres? (contraseña, certificado, token). <b>Autorización</b> = ¿qué puedes hacer? (roles, scopes, ACLs). La autenticación <b>siempre precede</b> a la autorización.');
+Q('seguridad', 'sg03', 'Sobre un <b>JWT</b> (header.payload.signature), ¿qué afirmación es correcta?',
+  ['Solo está firmado: el payload se lee decodificando Base64; no lleves datos sensibles', 'El payload va cifrado con el secret, así que puede llevar contraseñas sin riesgo', 'La firma cifra el header para que nadie sepa qué algoritmo se usó', 'El servidor guarda cada token emitido en una tabla para validarlo después'],
+  'Un JWT <b>no cifra</b> el payload: solo lo <b>firma</b>. Cualquiera puede leer los claims decodificando Base64, pero no puede modificarlos sin invalidar la firma.');
+Q('seguridad', 'sg04', '¿Cómo valida un servidor un JWT firmado con HS256?',
+  ['Recalcula la firma de header.payload con el secret, compara y revisa exp', 'Descifra el payload con su clave privada y revisa que traiga un usuario', 'Busca el token en la base de datos para confirmar que lo emitió antes', 'Le pide al cliente su contraseña de nuevo y la compara con el token'],
+  'Validar = <b>recalcular la firma</b> (HMAC-SHA256 de header.payload con el secret) y comparar, de forma segura ante ataques de tiempo. Después se revisa la <b>expiración</b> (<code>exp</code>). No hace falta guardar el token: JWT es <b>stateless</b>.');
+Q('seguridad', 'sg05', '¿Por qué es <b>difícil revocar</b> un JWT antes de que expire?',
+  ['Es stateless: nadie guarda los tokens, y uno válido sirve hasta su exp', 'Está cifrado, y el servidor no puede leerlo para invalidarlo', 'Solo el usuario que lo recibió tiene permiso para revocarlo', 'El KDC que lo emitió deja de estar disponible tras emitirlo'],
+  'El JWT es <b>autocontenido</b>: el servidor lo valida con la firma, sin consultar ningún registro. Por eso se usan <b>expiraciones cortas</b> (por ejemplo, 15 min) y refresh tokens. Kerberos, en cambio, es stateful y revoca vía el KDC.');
+Q('seguridad', 'sg06', 'En el <b>Authorization Code Flow</b> de OAuth2, ¿qué hace la app cliente con el código de autorización?',
+  ['Lo cambia, con su secret, por un access token', 'Lo usa directamente como token ante la API', 'Lo reenvía al usuario para que inicie sesión', 'Lo guarda como la contraseña del usuario'],
+  'Flujo: login → redirect al servidor de autorización → este devuelve un <b>código</b> → la app envía <b>código + secret</b> → recibe un <b>access token</b> (por ejemplo, un JWT) → llama a la API con <code>Bearer</code>.');
+Q('seguridad', 'sg07', '¿Qué caracteriza a <b>Kerberos</b>?',
+  ['Tickets (TGT y de servicio) emitidos por un KDC; la contraseña nunca viaja', 'Envía la contraseña cifrada con RSA a cada servicio en cada petición', 'Es stateless: cada servicio valida tokens firmados sin consultar a nadie', 'Usa OAuth2 por debajo y solo funciona en APIs REST públicas en internet'],
+  'Kerberos da <b>Single Sign-On</b>: el cliente obtiene un <b>TGT</b> del KDC y con él pide <b>service tickets</b> para cada servicio. Usa cifrado <b>simétrico</b> (AES), y la contraseña <b>nunca viaja</b>. Es el de Active Directory.');
+Q('seguridad', 'sg08', '¿Qué algoritmo simétrico es el estándar actual, y cuál está roto?',
+  ['AES es el estándar; DES (56 bits) está roto desde 1998', 'DES es el estándar; AES está deprecado desde 2023', '3DES es el estándar; AES solo se usa en legacy', 'RSA es el estándar simétrico; DES es asimétrico'],
+  '<b>AES</b> (128/192/256 bits) es el estándar. <b>3DES</b> es legacy y está deprecado. <b>DES</b> (56 bits) fue roto en 1998 y no debe usarse nunca. RSA es <b>asimétrico</b>.');
+Q('seguridad', 'sg09', '¿Por qué no se debe usar AES en modo <b>ECB</b>, y qué modo se recomienda?',
+  ['ECB deja ver patrones; se recomienda GCM, que además autentica', 'ECB es muy lento; se recomienda DES, que cifra mucho más rápido', 'ECB exige un IV por bloque; se recomienda CBC, que no usa IV', 'ECB no cifra el último bloque; se recomienda ECB con padding extra'],
+  'En <b>ECB</b> bloques iguales dan cifrados iguales: el <b>patrón</b> se ve. <b>GCM</b> cifra como CTR y además <b>autentica</b> (AEAD), con un IV único por mensaje. Es el de TLS 1.3.');
+Q('seguridad', 'sg10', 'En criptografía asimétrica, ¿para qué sirve la <b>clave pública</b> de alguien?',
+  ['Cifrar para que solo él lea, y verificar sus firmas', 'Firmar documentos en su nombre ante terceros', 'Descifrar los mensajes que otros le envían a él', 'Regenerar su clave privada si la llega a perder'],
+  'La <b>pública</b> se reparte: con ella <b>cifras</b> para el dueño y <b>verificas</b> su firma. La <b>privada</b> es secreta: el dueño <b>descifra</b> y <b>firma</b> con ella.');
+Q('seguridad', 'sg11', '¿Cómo funciona la <b>firma digital</b> de Alice?',
+  ['Cifra el hash con su privada; Bob lo descifra con la pública de Alice y compara', 'Cifra el mensaje con la pública de Bob; Bob lo descifra con su propia privada', 'Cifra el hash con la pública de Bob; Bob lo descifra con su clave privada', 'Adjunta su contraseña al mensaje; Bob la compara con la que tiene registrada'],
+  'Firma = <b>hash del mensaje cifrado con la clave privada</b> del emisor. El receptor la descifra con la <b>pública</b> del emisor, calcula el hash del mensaje recibido y compara: si coinciden, es <b>auténtico e íntegro</b>.');
+Q('seguridad', 'sg12', '¿Por qué las contraseñas se guardan con <b>bcrypt o Argon2</b> y no con SHA-256 directo?',
+  ['Porque son deliberadamente lentos e incluyen salt, lo que frena la fuerza bruta', 'Porque SHA-256 es reversible y permite recuperar la contraseña', 'Porque bcrypt cifra la contraseña y se puede descifrar si el usuario la olvida', 'Porque SHA-256 produce colisiones con cualquier contraseña corta'],
+  'SHA-256 es <b>rápido</b>: bueno para integridad, malo para contraseñas, porque un atacante prueba miles de millones por segundo. bcrypt y Argon2 son <b>lentos a propósito</b> (factor de costo) y traen <b>salt</b> aleatorio.');
+Q('seguridad', 'sg13', 'Si cambias "hola" por "Hola", el SHA-256 cambia completamente. ¿Cómo se llama esa propiedad?',
+  ['Efecto avalancha', 'Resistencia a colisiones', 'Irreversibilidad', 'Determinismo'],
+  '<b>Avalancha</b>: un cambio mínimo en la entrada produce un hash totalmente distinto. Las otras propiedades: <b>determinista</b> (misma entrada → mismo hash), <b>irreversible</b> y <b>resistente a colisiones</b>.');
+Q('seguridad', 'sg14', 'Un usuario cambia <code>/pedidos/41</code> por <code>/pedidos/42</code> en la URL y ve el pedido de otra persona. ¿Qué vulnerabilidad es y cómo se mitiga?',
+  ['IDOR: verificar en el backend que el recurso es del usuario', 'SQL injection: sanitizar los parámetros recibidos en la URL', 'MITM: activar TLS obligatorio en todos los endpoints de la API', 'Falta de rate limiting: limitar las peticiones por cada IP'],
+  '<b>IDOR</b> (Insecure Direct Object Reference): acceder al recurso de otro solo cambiando su ID. La mitigación es verificar el <b>ownership</b> en el backend: que el pedido 42 sea del usuario que lo pide.');
+Q('seguridad', 'sg15', '¿Qué agrega <b>mTLS</b> respecto de TLS normal?',
+  ['Que el cliente también presenta un certificado: autenticación mutua', 'Que el tráfico se cifra dos veces, una por cada lado de la conexión', 'Que ya no hacen falta certificados ni una autoridad certificadora', 'Que el servidor deja de presentar certificado y solo lo pide el cliente'],
+  'En TLS normal solo el <b>servidor</b> se autentica. En <b>mTLS</b> ambos presentan certificados verificados por la CA. Es la base de <b>Zero Trust</b> entre microservicios: "nunca confiar, siempre verificar" cada llamada.');
+Q('seguridad', 'sg16', '¿Para qué sirve un <b>correlation ID</b> en logs distribuidos?',
+  ['Relacionar los logs que distintos servicios generan para una misma petición', 'Cifrar las líneas de log para que nadie pueda modificarlas después', 'Ordenar por hora los logs de cada servidor según su reloj local', 'Identificar al usuario en los logs sin tener que guardar su nombre'],
+  'Se genera al entrar la petición (en el API gateway) y viaja en un header a cada servicio. Cada log lo incluye, así se reconstruye el <b>trace completo</b>: sin él, errores en API, DB y AUTH parecen eventos sueltos.');
+Q('seguridad', 'sg17', 'En los logs ves 500 intentos de login fallidos para <code>admin</code> desde la misma IP en 5 segundos. ¿Qué ataque es?',
+  ['Fuerza bruta', 'SQL injection', 'Escalamiento de privilegios', 'IDOR'],
+  'Muchos <b>FAIL de autenticación</b> desde la misma IP en poco tiempo es la señal de <b>fuerza bruta</b>. Se mitiga con rate limiting y bloqueo temporal.');
+Q('seguridad', 'sg18', '¿Dónde deben guardarse los secrets (claves, contraseñas de BD) de 100 microservicios en producción?',
+  ['En un gestor de secretos como Vault o un KMS, nunca hardcodeados en el código', 'En el código fuente, en un archivo de constantes compartido', 'En variables de entorno escritas en el Dockerfile', 'En el payload de cada JWT, para que viajen con las peticiones'],
+  'Regla de oro: <b>nunca hardcodear secrets</b>. Se usan <b>Vault</b> (secretos dinámicos y auditoría de accesos), <b>PKI</b> con certificados de corta duración o un <b>Cloud KMS</b> (las claves no salen del HSM).');
+
+/* =================== Fuera del temario: cloud y Docker =================== */
+Q('cloud', 'cl01', 'En <b>PaaS</b> (por ejemplo, Heroku), ¿qué gestionas tú?',
+  ['Solo la aplicación y los datos', 'Desde el sistema operativo hacia arriba', 'Nada: solo usas una aplicación terminada', 'Solo los servidores físicos y la red'],
+  'En <b>IaaS</b> (EC2) gestionas desde el sistema operativo hacia arriba. En <b>PaaS</b>, solo la <b>aplicación y los datos</b>. En <b>SaaS</b> (Gmail, Slack) solo usas la aplicación.');
+Q('cloud', 'cl02', '¿Cuál de estos es un ejemplo de <b>SaaS</b>?',
+  ['Gmail', 'AWS EC2', 'Google App Engine', 'Azure VMs'],
+  '<b>SaaS</b> = usar una aplicación terminada (Gmail, Slack, GitHub). EC2 y Azure VMs son <b>IaaS</b>; App Engine es <b>PaaS</b>.');
+Q('cloud', 'cl03', 'Según la analogía de la clase, ¿qué relación hay entre una <b>imagen</b> y un <b>contenedor</b> de Docker?',
+  ['Imagen = clase (plantilla inmutable); contenedor = objeto (instancia ejecutándose)', 'Imagen = objeto en ejecución; contenedor = la plantilla desde donde se crea', 'Son lo mismo: imagen es el nombre en Linux y contenedor el nombre en Windows', 'El contenedor agrupa varias imágenes, igual que un registry como Docker Hub'],
+  '<b>Imagen</b> = plantilla inmutable (SO base + dependencias + app), creada con <code>docker build</code>. <b>Contenedor</b> = proceso aislado que se ejecuta desde una imagen con <code>docker run</code>.');
+Q('cloud', 'cl04', '¿Qué problema resuelven los contenedores?',
+  ['El "funciona en mi máquina": llevan app, dependencias y config a todos lados', 'Que los servidores físicos se queden sin RAM al correr muchas aplicaciones', 'Que el código fuente se pueda ejecutar sin compilarlo antes en cada máquina', 'Que cada usuario necesite instalar un sistema operativo distinto para la app'],
+  'Entre el laptop y producción cambian versiones (Ubuntu, Python, Redis), variables de entorno y librerías. El contenedor lleva <b>todo lo necesario</b>, y la app funciona igual en desarrollo, staging y producción.');
+Q('cloud', 'cl05', '¿Para qué sirve <b>Docker Compose</b>?',
+  ['Definir y levantar juntos varios contenedores con un solo comando', 'Construir una sola imagen más rápido usando varios núcleos', 'Subir las imágenes a AWS automáticamente después de cada build', 'Convertir un contenedor en una máquina virtual completa'],
+  'Con un <code>docker-compose.yml</code> se describen todos los servicios, sus imágenes y puertos, y <code>docker-compose up</code> los levanta juntos.');

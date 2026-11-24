@@ -122,7 +122,7 @@ function cargarCurso(dir) {
   if (preguntas.length) {
     if (!examen.titulo || !examen.preguntas || !examen.minutos || !Array.isArray(examen.secciones)) fallo(id, 'preguntas.js: examen necesita titulo, preguntas, minutos y secciones');
     const secIds = new Set((examen.secciones || []).map(x => x.id)), pids = new Set();
-    (examen.secciones || []).forEach(x => { if (!x.id || !x.titulo || !x.peso) fallo(id, `preguntas.js: la sección ${x.id || '?'} necesita id, titulo y peso`); if (x.teoria && !teIds.has(x.teoria)) fallo(id, `preguntas.js: la sección ${x.id} apunta a la teoría ${x.teoria}, que no existe`); if (x.tema && !temas.has(x.tema)) fallo(id, `preguntas.js: la sección ${x.id} usa el tema ${x.tema}, que no está en curso.temas`); });
+    (examen.secciones || []).forEach(x => { if (!x.id || !x.titulo || typeof x.peso !== 'number') fallo(id, `preguntas.js: la sección ${x.id || '?'} necesita id, titulo y peso`); if (x.teoria && !teIds.has(x.teoria)) fallo(id, `preguntas.js: la sección ${x.id} apunta a la teoría ${x.teoria}, que no existe`); if (x.tema && !temas.has(x.tema)) fallo(id, `preguntas.js: la sección ${x.id} usa el tema ${x.tema}, que no está en curso.temas`); });
     preguntas.forEach(q => {
       const w = `pregunta ${q.id || '?'}`;
       if (!q.id || !q.sec || !q.q || !q.exp || !Array.isArray(q.ops)) { fallo(id, `${w}: necesita id, sec, q, ops y exp`); return; }

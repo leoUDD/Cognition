@@ -839,3 +839,55 @@ teoria.push({
     }
   ]
 });
+
+/* =====================================================================
+   SEGURIDAD Y CLOUD (Unidad IV, fuera del temario del examen)
+   ===================================================================== */
+teoria.push({
+  id: 'seguridad', unidad: 'Fuera del temario', titulo: 'Seguridad, cloud y Docker',
+  resumen: 'Por si acaso: pilares CIA, JWT, OAuth2, Kerberos, cifrado, firma digital, hashing, APIs, mTLS, auditoría, cloud y contenedores.',
+  intro: `Estos temas se vieron en clase pero <b>no aparecen en el temario del examen</b>. Están resumidos por si acaso.`,
+  sub: [
+    {
+      id: 'cia', titulo: 'Pilares CIA y autenticación', resumen: 'Confidencialidad, integridad, disponibilidad; quién eres vs qué puedes hacer.',
+      idea: `<b>CIA</b>: confidencialidad (solo los autorizados leen), integridad (nadie modifica sin permiso) y disponibilidad (funciona cuando se necesita).`,
+      tabla: { cols: ['Pilar', 'Protege', 'Herramientas'],
+        filas: [['Confidencialidad', 'Que solo los autorizados lean', 'Cifrado, TLS, control de acceso'], ['Integridad', 'Que nadie modifique sin permiso', 'HMAC, firma digital, hash'], ['Disponibilidad', 'Que el sistema opere', 'Replicación, failover, mitigación DDoS']] },
+      texto: `<p><b>Autenticación</b> = ¿quién eres? (contraseña, certificado, token). <b>Autorización</b> = ¿qué puedes hacer? (roles, scopes, ACLs). La autenticación <b>siempre va primero</b>.</p>`
+    },
+    {
+      id: 'protocolos', titulo: 'JWT, OAuth2 y Kerberos', comparacion: true, resumen: 'Tres formas de autenticar en sistemas distribuidos.',
+      idea: `<b>JWT</b>: token firmado y stateless. <b>OAuth2</b>: una app accede a recursos en nombre del usuario. <b>Kerberos</b>: SSO corporativo con tickets.`,
+      tabla: { cols: ['', 'JWT', 'OAuth2', 'Kerberos'],
+        filas: [['Caso de uso', 'APIs REST, microservicios', 'Apps que acceden a recursos del usuario', 'SSO en red corporativa (Active Directory)'], ['Estado', 'Stateless', 'Stateless (depende del auth server)', 'Stateful (tickets con TTL)'], ['Criptografía', 'HMAC-SHA256 o RSA', 'TLS + tokens', 'AES simétrico'], ['Revocación', 'Difícil: espera la expiración', 'Sí, por introspección', 'Sí, vía el KDC']] },
+      texto: `<p><b>JWT</b> = header.payload.signature. <b>No cifra</b> el payload, solo lo firma. Se valida recalculando la firma con el secret y revisando <code>exp</code>.</p>
+<p><b>OAuth2 (Authorization Code):</b> login → código de autorización → la app cambia código + secret por un <b>access token</b> → llama a la API con <code>Bearer</code>.</p>
+<p><b>Kerberos:</b> el KDC entrega un <b>TGT</b>, con el que se piden <b>service tickets</b>. La contraseña nunca viaja.</p>`
+    },
+    {
+      id: 'cripto', titulo: 'Cifrado, firma y hash', resumen: 'AES, RSA, firma digital, SHA-256 y bcrypt.',
+      idea: `<b>Simétrica</b> (AES): una clave, rápida. <b>Asimétrica</b> (RSA): par de claves, para intercambio y firma. <b>Hash</b>: huella irreversible.`,
+      texto: `<ul><li><b>Simétrica:</b> AES (estándar; modo <b>GCM</b>, que cifra y autentica). 3DES es legacy; DES (56 bits) está roto. Nunca ECB: deja ver patrones.</li>
+<li><b>Asimétrica:</b> la <b>pública</b> cifra para el dueño y verifica sus firmas; la <b>privada</b> descifra y firma. RSA 2048+ o ECDSA.</li>
+<li><b>Firma digital:</b> hash del mensaje cifrado con la <b>privada</b> del emisor; el receptor lo descifra con la <b>pública</b> y compara hashes.</li>
+<li><b>SHA-256:</b> determinista, efecto avalancha, irreversible, resistente a colisiones. Para integridad y firmas.</li>
+<li><b>Contraseñas:</b> <b>bcrypt o Argon2</b> (lentos y con salt), nunca SHA-256 directo.</li></ul>`
+    },
+    {
+      id: 'apis', titulo: 'APIs, Zero Trust y auditoría', resumen: 'Amenazas en APIs, gestión de claves, mTLS y correlation IDs.',
+      idea: `Cada llamada se verifica (<b>Zero Trust</b>), los secrets van en un gestor y los logs llevan un <b>correlation ID</b> para seguir cada petición.`,
+      texto: `<ul><li><b>Amenazas en APIs:</b> inyección (validar input), auth rota (JWT con exp), exposición de datos (DTO), falta de rate limiting, MITM (TLS) e <b>IDOR</b> (verificar que el recurso sea del usuario).</li>
+<li><b>Secrets:</b> nunca hardcodeados; se usan Vault, PKI o un Cloud KMS.</li>
+<li><b>mTLS:</b> cliente y servidor presentan certificados: autenticación mutua. Base de <b>Zero Trust</b> ("nunca confiar, siempre verificar").</li>
+<li><b>Auditoría:</b> logs inmutables de quién hizo qué, cuándo y desde dónde. El <b>correlation ID</b> une los logs de una misma petición entre servicios (stack ELK).</li>
+<li><b>Ataques en logs:</b> fuerza bruta (muchos FAIL desde una IP), SQL injection (<code>' OR '1'='1</code>), escalamiento de privilegios (un 403 que de pronto da 200).</li></ul>`
+    },
+    {
+      id: 'cloud', titulo: 'Cloud y Docker', resumen: 'IaaS, PaaS, SaaS; imágenes, contenedores y Compose.',
+      idea: `Cloud = recursos bajo demanda, elásticos y pagados por uso. Docker empaqueta la app con todo lo que necesita para que corra igual en todos lados.`,
+      tabla: { cols: ['Modelo', 'Tú gestionas', 'Ejemplos'],
+        filas: [['IaaS', 'Desde el sistema operativo hacia arriba', 'AWS EC2, Azure VMs'], ['PaaS', 'Solo la aplicación y los datos', 'Heroku, Google App Engine'], ['SaaS', 'Nada: solo usas la app', 'Gmail, Slack, GitHub']] },
+      texto: `<p><b>Imagen</b> = plantilla inmutable (como una clase); <b>contenedor</b> = instancia en ejecución (como un objeto). Resuelven el "funciona en mi máquina". <b>Docker Compose</b> levanta varios contenedores juntos con <code>docker-compose up</code>.</p>`
+    }
+  ]
+});

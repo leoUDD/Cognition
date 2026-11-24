@@ -47,7 +47,7 @@ function alInicio() {
   <h2 style="margin-bottom:0">Por sección</h2>
   <div class="grid g2">${cfg.secciones.map(s => {
     const st = alSecStats(s.id), pct = st.vistas ? Math.round(100 * st.ok / st.vistas) : null;
-    return `<div class="card stack al-sec"><div class="row spread"><span class="eyebrow">~${s.peso} en el examen</span>${pct != null ? `<span class="chip ${pct >= 70 ? 'good' : 'warn'}">${pct} % de acierto</span>` : ''}</div>
+    return `<div class="card stack al-sec"><div class="row spread"><span class="eyebrow">${s.peso ? `~${s.peso} en el examen` : 'Fuera del temario · no entra al simulacro'}</span>${pct != null ? `<span class="chip ${pct >= 70 ? 'good' : 'warn'}">${pct} % de acierto</span>` : ''}</div>
       <h3 style="margin:0">${esc(s.titulo)}</h3><p class="muted small" style="margin:0">${st.total} preguntas en el banco · ${st.vistas} respondidas</p>
       <div class="bar" aria-hidden="true"><i style="width:${st.total ? Math.round(100 * st.vistas / st.total) : 0}%"></i></div>
       <div class="row"><button class="btn sm primary" data-act="alPracticar" data-v="${s.id}">Practicar</button>${s.teoria ? `<button class="btn sm" data-act="teIr" data-v="${s.teoria}">Leer la teoría</button>` : ''}</div></div>`;
@@ -68,7 +68,7 @@ function alPractica() {
 function alArmarSim() {
   const cfg = alCfg(), banco = alBanco(), usadas = new Set(), ids = [];
   cfg.secciones.forEach(s => { alMezcla(banco.filter(q => q.sec === s.id)).slice(0, s.peso).forEach(q => { ids.push(q.id); usadas.add(q.id); }); });
-  alMezcla(banco.filter(q => !usadas.has(q.id))).slice(0, Math.max(0, cfg.preguntas - ids.length)).forEach(q => ids.push(q.id));
+  alMezcla(banco.filter(q => !usadas.has(q.id) && (cfg.secciones.find(s => s.id === q.sec) || {}).peso > 0)).slice(0, Math.max(0, cfg.preguntas - ids.length)).forEach(q => ids.push(q.id));
   const lista = alMezcla(ids).slice(0, cfg.preguntas);
   return { ids: lista, ord: lista.map(id => alOrden(alBanco().find(q => q.id === id))), resp: {}, t0: Date.now(), i: 0, fin: false };
 }
