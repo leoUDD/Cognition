@@ -363,3 +363,23 @@ Q('patrones', 'pa07', 'En gossip, ¿en cuántas rondas aproximadamente llega la 
 Q('patrones', 'pa08', '¿Cuándo sirve un <b>pipe</b> y cuándo hace falta <b>TCP</b>?',
   ['Pipe: emparentados por fork, mismo host; TCP: independientes, cualquier máquina', 'Pipe: procesos en máquinas distintas; TCP: solo dentro del mismo host', 'Pipe y TCP sirven para lo mismo; solo cambia la velocidad de envío', 'Pipe: cualquier proceso del host, emparentado o no; TCP: solo remotos'],
   'Un pipe se crea <b>antes del fork</b> y lo heredan los descendientes: solo sirve entre procesos <b>emparentados</b> en el <b>mismo host</b>. TCP conecta procesos que no se conocen, en cualquier máquina de la red.');
+
+/* ---- Colas: contenidos de la clase (Unidad III) ---- */
+Q('colas', 'cq19', 'Según la clase, ¿cuál es el problema principal de la <b>comunicación síncrona</b> entre cliente y servidor?',
+  ['El cliente queda bloqueado esperando la respuesta y, si el servidor es lento o cae, todos fallan', 'Los mensajes llegan desordenados porque no hay un buffer intermedio', 'El servidor no puede saber qué cliente le envió cada mensaje', 'Obliga a usar un broker externo como Redis o Kafka'],
+  'En la llamada síncrona, el cliente hace <code>send</code> y queda <b>bloqueado</b> en <code>wait_response()</code>: no puede hacer otra cosa, un servidor lento arruina la experiencia y una caída arrastra a todos. Las colas lo resuelven con un buffer intermedio.');
+Q('colas', 'cq20', 'Un servicio envía eventos de logging a una cola y sigue trabajando, <b>sin esperar respuesta</b>. ¿Qué patrón es?',
+  ['Fire-and-forget', 'Request-reply', 'Fan-out / fan-in', 'Point-to-point con ACK manual'],
+  '<b>Fire-and-forget</b>: "dispara y olvida". El productor envía y continúa, sin esperar respuesta. La clase lo usa para logging y analytics.');
+Q('colas', 'cq21', 'Una tarea grande se divide en partes que procesan varios workers en paralelo, y luego se juntan los resultados. ¿Qué patrón es?',
+  ['Fan-out / fan-in', 'Publish-subscribe', 'Fire-and-forget', 'Request-reply'],
+  '<b>Fan-out</b> reparte el trabajo entre varios workers; <b>fan-in</b> reúne sus resultados. Es el patrón de procesamiento paralelo.');
+Q('colas', 'cq22', 'Según las ventajas de las colas vistas en clase, ¿qué significa que la cola actúe como <b>buffer</b>?',
+  ['Absorbe picos de carga: los mensajes esperan hasta que el consumidor pueda procesarlos', 'Garantiza que ningún mensaje se procese dos veces', 'Ordena los mensajes por prioridad antes de entregarlos', 'Cifra los mensajes mientras esperan en la cola'],
+  'Si llegan más mensajes de los que el consumidor alcanza a procesar, la cola los <b>guarda</b> y el consumidor los procesa cuando puede. El productor no se bloquea.');
+Q('colas', 'cq23', '¿Qué tecnología de mensajería se asocia en clase a <b>alto throughput y streaming</b>, para big data y logs?',
+  ['Apache Kafka', 'Redis Pub/Sub', 'RabbitMQ', 'Amazon SQS'],
+  'Según la clase: <b>Kafka</b> → alto throughput y streaming; <b>RabbitMQ</b> (AMQP) → routing flexible y workflows complejos; <b>Redis Pub/Sub</b> → ligero y simple, en tiempo real (el del proyecto); <b>SQS</b> → servicio administrado de AWS.');
+Q('colas', 'cq24', 'En el proyecto, el game server ejecuta <code>PUBLISH game-events …</code> en Redis, y la UI, el leaderboard y el logger ejecutan <code>SUBSCRIBE game-events</code>. ¿Qué ocurre con cada evento?',
+  ['Lo reciben todos los suscriptores del canal', 'Lo recibe solo el primer suscriptor que lo pida', 'Se reparte entre los suscriptores por turnos', 'Queda guardado hasta que lo lea el logger'],
+  'Es <b>publish-subscribe</b>: cada evento publicado en el canal <code>game-events</code> se entrega a <b>todos</b> los suscriptores. (Redis Pub/Sub no guarda mensajes: un suscriptor desconectado en ese momento se lo pierde).');

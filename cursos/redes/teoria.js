@@ -723,6 +723,14 @@ teoria.push({
   intro: `Un <b>broker</b> de mensajes (RabbitMQ, Kafka) es un intermediario: el productor deja mensajes y el consumidor los retira cuando puede. Casi todo este tema sale de una pregunta: <b>¿qué pasa si algo falla entre enviar y procesar?</b>`,
   sub: [
     {
+      id: 'sincrona', titulo: 'Síncrono vs colas (la clase)', comparacion: true, resumen: 'Por qué la llamada bloqueante escala mal y qué resuelve una cola.',
+      idea: `En la comunicación <b>síncrona</b> el cliente queda <b>bloqueado</b> esperando. Con una <b>message queue</b>, el productor "envía y olvida" y el consumidor procesa cuando puede.`,
+      tabla: { cols: ['', 'Síncrona (send + wait_response)', 'Con message queue'],
+        filas: [['El cliente', 'Bloqueado hasta la respuesta', 'Continúa sin esperar'], ['Si el servidor es lento', 'Mala experiencia para todos', 'La cola absorbe el pico (buffer)'], ['Si el servidor cae', 'Todos fallan', 'Los mensajes esperan en la cola'], ['Acoplamiento', 'Cliente y servidor se conocen', 'Productor y consumidor no se conocen'], ['Escalar', 'Difícil', 'Varios consumers en paralelo']] },
+      texto: `<p><b>Patrones vistos en clase:</b> <b>fire-and-forget</b> (logging, analytics), <b>request-reply</b> (consultas, comandos), <b>publish-subscribe</b> (broadcast, notificaciones) y <b>fan-out/fan-in</b> (repartir una tarea entre workers y juntar los resultados).</p>
+<p><b>Tecnologías:</b> <b>RabbitMQ</b> (AMQP, routing flexible), <b>Kafka</b> (alto throughput, streaming, logs), <b>Redis Pub/Sub</b> (ligero, tiempo real; el del proyecto, con <code>PUBLISH</code> y <code>SUBSCRIBE</code>) y <b>Amazon SQS</b> (administrado en AWS).</p>`
+    },
+    {
       id: 'broker', titulo: '¿Para qué un broker?', resumen: 'Desacoplamiento temporal: productor y consumidor no necesitan estar vivos a la vez.',
       idea: `El broker guarda los mensajes: el productor puede enviar aunque el consumidor esté caído o lento. Eso es <b>desacoplamiento temporal</b>, su beneficio principal.`,
       texto: `<p>Sin broker, el productor llama directo al consumidor: si este está caído, la llamada falla. Con broker, el mensaje queda almacenado hasta que el consumidor se reconecte.</p>
