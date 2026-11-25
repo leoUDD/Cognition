@@ -137,6 +137,8 @@ let errs = []; const ok = (c, m) => { if (!c) errs.push('FAIL ' + m); };
   ok(w.eval('P.alSim.ids.length') === 60, 'el simulacro tiene 60 preguntas');
   ok(w.eval("CUR.examen.secciones.every(s => P.alSim.ids.filter(id => alQ(id).sec === s.id).length === s.peso)"), 'el simulacro respeta la cantidad de preguntas por sección del temario');
   ok(d.querySelector('#al-reloj') && d.querySelectorAll('.al-mapa button').length === 60, 'muestra el reloj y el mapa de preguntas');
+  w.eval("CUR.preguntas.filter(q => q.sec === 'relojes').forEach(q => { if (!['re08','re09','re10'].includes(q.id)) P.preg[q.id] = { n: 1, a: 1, u: 1 }; }); P.alSim = alArmarSim(); AL.modo = 'sim'; render()");
+  ok(w.eval("P.alSim.ids.filter(id => alQ(id).sec === 'relojes').sort().join()") === 're08,re09,re10', 'el simulacro elige primero las preguntas que nunca has respondido');
   click('.al-op[data-v="0"]');
   ok(d.querySelector('.al-op.on') && !d.querySelector('.al-q .callout'), 'en el simulacro no se revela la respuesta');
   click('[data-act=alSimTerminar]');

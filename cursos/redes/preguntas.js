@@ -458,3 +458,217 @@ Q('cloud', 'cl04', '¿Qué problema resuelven los contenedores?',
 Q('cloud', 'cl05', '¿Para qué sirve <b>Docker Compose</b>?',
   ['Definir y levantar juntos varios contenedores con un solo comando', 'Construir una sola imagen más rápido usando varios núcleos', 'Subir las imágenes a AWS automáticamente después de cada build', 'Convertir un contenedor en una máquina virtual completa'],
   'Con un <code>docker-compose.yml</code> se describen todos los servicios, sus imágenes y puertos, y <code>docker-compose up</code> los levanta juntos.');
+
+/* =====================================================================
+   SEGUNDO BANCO: preguntas nuevas para que el simulacro no se repita
+   ===================================================================== */
+
+/* ---- POSIX ---- */
+Q('posix', 'po23', '¿Cuántos procesos hay en total (contando el original) después de ejecutar esto?',
+  ['4', '3', '2', '6'],
+  'El primer <code>fork()</code> deja 2 procesos. <b>Ambos</b> ejecutan el segundo fork, y cada uno se duplica: 2 × 2 = <b>4</b>. Regla: n forks seguidos producen 2ⁿ procesos.',
+  `fork();
+fork();`);
+Q('posix', 'po24', '¿Cuántos procesos hay en total (contando el original) al terminar este ciclo?',
+  ['8', '4', '3', '6'],
+  'En cada vuelta, <b>todos</b> los procesos que existen hacen fork y se duplican: 1 → 2 → 4 → <b>8</b>. Los hijos también siguen el ciclo, porque heredan el valor de i.',
+  `for (int i = 0; i < 3; i++) {
+    fork();
+}`);
+Q('posix', 'po25', '¿Qué se imprime? (la salida va a un terminal y "A" no termina en \\n)',
+  ['"AB" dos veces: el buffer con "A" se copió al hijo', '"A" una vez y "B" dos veces, en ese orden', '"AB" una sola vez, porque solo el padre imprime', '"A" dos veces y "B" una vez, solo en el hijo'],
+  'printf guarda "A" en un <b>buffer</b> y no lo escribe hasta ver un \\n. El fork <b>copia la memoria</b>, buffer incluido, así que ambos procesos tienen "A" pendiente y luego agregan "B\\n": sale <b>AB dos veces</b>. Se evita con <code>fflush(stdout)</code> antes del fork.',
+  `printf("A");
+fork();
+printf("B\\n");`);
+Q('posix', 'po26', 'El padre termina mientras el hijo sigue corriendo. ¿Qué retorna <code>getppid()</code> en el hijo?',
+  ['El PID del proceso que lo adoptó (init o un subreaper)', 'El PID del padre original, aunque ya no exista', '0, porque el hijo quedó sin padre', '-1, y errno indica que el padre murió'],
+  'Un hijo sin padre es un <b>huérfano</b>. El kernel se lo asigna a <b>init</b> (PID 1) o a un proceso "subreaper", que se encarga de recogerlo cuando termine.');
+Q('posix', 'po27', '<code>waitpid(pid, &st, WNOHANG)</code> retorna <b>0</b>. ¿Qué significa?',
+  ['Que el hijo sigue vivo: no hay estado que recoger todavía', 'Que el hijo terminó con exit(0)', 'Que ocurrió un error y hay que revisar errno', 'Que el hijo ya fue recogido antes por otro wait'],
+  'Con <b>WNOHANG</b>, waitpid no se bloquea: retorna el <b>PID</b> si recogió un hijo terminado, <b>0</b> si el hijo aún no termina y <b>-1</b> si hay error. El código de salida va en <code>st</code>, no en el retorno.');
+Q('posix', 'po28', 'Tras <code>waitpid(pid, &st, 0)</code>, <code>WIFEXITED(st)</code> es <b>falso</b>. ¿Qué indica?',
+  ['Que el hijo no terminó con exit; por ejemplo, lo mató una señal', 'Que el hijo terminó con exit(0), sin errores de ningún tipo', 'Que el hijo todavía se está ejecutando y no ha terminado', 'Que waitpid falló y la variable st no tiene información'],
+  'WIFEXITED es verdadero solo si el hijo terminó <b>normalmente</b> (exit o return de main). Si lo mató una señal (por ejemplo, un SIGKILL), es falso y <code>WIFSIGNALED(st)</code> es verdadero. En ese caso WEXITSTATUS no tiene sentido.');
+Q('posix', 'po29', 'Un programa hace <code>fork()</code> y <b>después</b> cada proceso llama a <code>pipe(fd)</code>. ¿Pueden comunicarse por ese pipe?',
+  ['No: cada uno creó un pipe distinto y no comparten ninguno', 'Sí: pipe() siempre conecta al padre con sus hijos', 'Sí, siempre que usen los mismos números de fd', 'Solo si el padre escribe y el hijo lee'],
+  'Un pipe se hereda solo si existe <b>antes</b> del fork. Si cada proceso lo crea después, tiene <b>su propio pipe</b>, aunque los números de fd coincidan. Regla: <b>pipe() primero, fork() después</b>.');
+Q('posix', 'po30', 'El padre envía por <code>p1</code> y el hijo responde por <code>p2</code>. ¿De qué descriptor lee el padre la respuesta?',
+  ['p2[0]', 'p1[0]', 'p2[1]', 'p1[1]'],
+  'La respuesta viaja por <b>p2</b> (hijo → padre). El hijo escribe en <b>p2[1]</b> y el padre lee de <b>p2[0]</b>. En cada pipe, [0] es lectura y [1] escritura.',
+  `int p1[2], p2[2];
+pipe(p1);     /* padre -> hijo */
+pipe(p2);     /* hijo -> padre */`);
+Q('posix', 'po31', 'El padre pide <code>read(fd, buf, 100)</code> en un pipe y recibe <b>20</b>. ¿Qué significa?',
+  ['Es normal: había 20 bytes; el resto puede llegar después', 'Hubo un error de lectura y se perdieron los otros 80 bytes', 'El escritor cerró el pipe justo después de esos 20 bytes', 'El pipe tiene un límite fijo de 20 bytes por cada lectura'],
+  'read retorna <b>lo que haya disponible</b>, hasta el máximo pedido. Leer menos no es un error ni significa fin. El fin se indica con <b>0</b>, y los errores con -1.');
+Q('posix', 'po32', 'Un servidor escribe a un cliente que ya se desconectó y el servidor <b>muere sin mensaje</b>. ¿Qué pasó y cómo se evita?',
+  ['Recibió SIGPIPE; se ignora con signal(SIGPIPE, SIG_IGN) y se revisa EPIPE', 'Recibió SIGCHLD; se instala un handler con waitpid', 'Se llenó el buffer del socket; se usa un buffer más grande', 'El cliente le envió un SIGKILL; hay que bloquear esa señal'],
+  'Escribir en una conexión cerrada genera <b>SIGPIPE</b>, que mata el proceso por defecto. Ignorándola, <code>write</code>/<code>send</code> retorna -1 con <b>errno = EPIPE</b>, y el servidor puede cerrar ese cliente y seguir atendiendo a los demás.');
+Q('posix', 'po33', 'Un proceso usa 2 GB de memoria y hace fork. ¿Por qué el fork es casi instantáneo?',
+  ['Copy-on-write: no copia los 2 GB, comparte páginas hasta que alguien escribe', 'Porque el hijo no recibe memoria, solo los descriptores abiertos', 'Porque el kernel comprime la memoria antes de copiarla al hijo', 'Porque el hijo usa la memoria del padre para siempre, sin copia'],
+  'Gracias a <b>copy-on-write</b>, el fork solo duplica las tablas de páginas. Las páginas se copian <b>de a una</b> cuando alguno escribe en ellas. Así fork es barato aunque el proceso sea grande.');
+Q('posix', 'po34', 'El padre instala un handler para SIGTERM, luego hace fork, y después alguien envía SIGTERM <b>al hijo</b>. ¿Qué pasa?',
+  ['El hijo ejecuta el mismo handler, porque lo heredó', 'El hijo termina, porque los handlers no se heredan', 'La señal se redirige al padre, que la maneja', 'El hijo la ignora hasta instalar su propio handler'],
+  'Los <b>handlers instalados antes del fork se heredan</b>: el hijo reacciona igual que el padre. (Se perderían si el hijo hiciera exec()).');
+Q('posix', 'po35', '¿Por qué <code>kill -9</code> no elimina un proceso <b>zombie</b>?',
+  ['Porque ya está muerto: desaparece cuando el padre lo recoge', 'Porque los zombies ignoran todas las señales, incluida SIGKILL', 'Porque solo el usuario root puede enviar señales a un zombie', 'Porque kill -9 solo afecta a procesos en primer plano'],
+  'Un zombie <b>ya terminó</b>: es solo una entrada en la tabla de procesos esperando que el padre lea su estado. Desaparece cuando el padre hace wait, o cuando el padre muere e init lo adopta y lo recoge.');
+Q('posix', 'po36', 'Tras <code>socketpair(AF_UNIX, SOCK_STREAM, 0, sv)</code> y un fork, ¿cómo suelen repartirse los extremos?',
+  ['El padre usa sv[0] y cierra sv[1]; el hijo, al revés', 'El padre lee de sv[0] y el hijo escribe en ese mismo sv[0]', 'Ambos usan sv[0], y sv[1] queda reservado para los errores', 'Cada uno necesita además un pipe propio para poder responder'],
+  'Los dos extremos son <b>bidireccionales</b>: cada proceso se queda con uno y cierra el otro. Lo que el padre escribe en sv[0] lo lee el hijo en sv[1], y viceversa. No hace falta un segundo canal.');
+Q('posix', 'po37', 'El lector de un pipe es muy lento y el pipe se <b>llena</b> (en Linux, unos 64 KB). ¿Qué le pasa al escritor?',
+  ['write() se bloquea hasta que el lector libere espacio', 'write() descarta los datos que no caben', 'write() retorna 0 y el escritor debe reintentar', 'El kernel agranda el pipe sin límite'],
+  'Un pipe tiene un buffer de tamaño fijo. Si se llena, <code>write</code> <b>se bloquea</b> hasta que el lector consuma datos. Es una forma natural de <b>back-pressure</b>: el rápido espera al lento.');
+
+/* ---- Sockets ---- */
+Q('sockets', 'so16', '¿Cuál es la secuencia típica de un <b>cliente</b> TCP?',
+  ['socket → connect → send/recv → close', 'socket → bind → listen → accept', 'connect → socket → send/recv → close', 'socket → accept → send/recv → close'],
+  'El cliente no necesita bind (el sistema le asigna un puerto) ni listen/accept: crea el socket y hace <b>connect</b> a la IP y puerto del servidor.');
+Q('sockets', 'so17', '¿Qué hace <code>accept()</code> si no hay ninguna conexión pendiente?',
+  ['Se bloquea hasta que llegue un cliente', 'Retorna 0 de inmediato', 'Retorna -1 con errno = ECONNRESET', 'Crea una conexión vacía para usar después'],
+  'En un socket bloqueante, <code>accept</code> <b>espera</b> hasta que haya una conexión en la cola del backlog. Por eso el servidor queda "detenido" en accept cuando no hay clientes.');
+Q('sockets', 'so18', 'Un servidor llama a <code>close()</code> en cada conexión antes que sus clientes. ¿Dónde se acumulan las conexiones en TIME_WAIT?',
+  ['En el servidor, porque es el que cierra primero', 'En los clientes, porque reciben el FIN', 'En ninguno: TIME_WAIT solo ocurre con errores', 'En ambos por igual, sin importar quién cierra'],
+  'TIME_WAIT le toca a quien hace el <b>cierre activo</b> (envía el primer FIN). Si siempre cierra el servidor, él acumula TIME_WAIT. Los clientes pasan por CLOSE_WAIT hasta que cierran.');
+Q('sockets', 'so19', 'En el hijo que atiende a un cliente, <code>recv()</code> retorna 0. ¿Qué debería hacer?',
+  ['Cerrar el socket del cliente y terminar el hijo', 'Volver a llamar recv(), porque el mensaje aún no llega', 'Enviar un mensaje vacío para confirmar la conexión', 'Reiniciar la conexión con connect()'],
+  'recv = 0 es un <b>cierre ordenado</b>: el cliente no enviará nada más. Lo correcto es <code>close()</code> y terminar. Si no cierra, ese socket queda en <b>CLOSE_WAIT</b>.');
+Q('sockets', 'so20', '¿Para qué sirve <code>htons(8080)</code> al llenar <code>sin_port</code>?',
+  ['Convierte el puerto al orden de bytes de la red', 'Valida que el puerto sea mayor a 1024', 'Convierte el número de puerto a texto', 'Reserva el puerto en el sistema operativo'],
+  'Los números en la red van en <b>big-endian</b> (orden de red). <code>htons</code> = host to network short. Sin él, en una máquina little-endian el servidor escucharía en otro puerto.');
+Q('sockets', 'so21', 'Después de un recv, el buffer acumulado tiene <code>"PING\\nPO"</code>. ¿Qué hace un parser correcto?',
+  ['Procesa "PING" y guarda "PO" para completarlo con el próximo recv', 'Procesa "PING" y "PO" como dos comandos separados', 'Descarta todo, porque el mensaje vino mezclado', 'Espera a que el buffer termine en \\n para procesar algo'],
+  'Se extrae cada línea <b>completa</b> (hasta el \\n) y se procesa. Lo que queda sin \\n es un <b>mensaje a medias</b>: se guarda en el buffer hasta que llegue el resto ("NG\\n").');
+Q('sockets', 'so22', '¿Qué retorna <code>sscanf("MOVE 3 abc", "MOVE %d %d", &a, &b)</code>?',
+  ['1', '2', '0', '-1'],
+  'Lee "MOVE" (texto fijo), luego <code>%d</code> = 3 (asigna a) y después intenta <code>%d</code> con "abc", que falla. Asignó <b>1</b> campo. Por eso se valida <code>== 2</code>: este mensaje está mal formado.');
+Q('sockets', 'so23', '¿En qué momento hay que llamar a <code>setsockopt(..., SO_REUSEADDR, ...)</code>?',
+  ['Antes de bind()', 'Después de listen()', 'Después de accept()', 'Antes de cada recv()'],
+  'SO_REUSEADDR afecta cómo <b>bind</b> verifica si el puerto está ocupado (por ejemplo, por conexiones en TIME_WAIT). Llamarlo después del bind no sirve.');
+Q('sockets', 'so24', '¿Qué imprime <code>printf("[%s] conectado\\n", ctime(&t));</code>?',
+  ['La fecha, un salto de línea, y "] conectado" en la línea siguiente', 'La fecha y "conectado" en la misma línea, entre corchetes', 'Basura, porque ctime retorna un número', 'Nada, porque ctime necesita memoria reservada antes'],
+  'El texto de <code>ctime</code> <b>termina en \'\\n\'</b>. Al ponerlo dentro de los corchetes, el salto de línea queda antes del "]". Hay que quitar el \\n o usar otro formato.');
+
+/* ---- Raft ---- */
+Q('raft', 'ra14', 'Un follower no recibe heartbeats antes de que venza su election timeout. ¿Qué hace?',
+  ['Pasa a candidato, sube su term, se vota y pide votos', 'Se proclama líder y envía AppendEntries a todos los nodos', 'Espera otro timeout completo antes de tomar cualquier acción', 'Le pide al líder que reenvíe el último heartbeat perdido'],
+  'Sin heartbeat asume que no hay líder: pasa a <b>candidato</b>, hace <b>term + 1</b>, se <b>vota a sí mismo</b> y pide votos con <b>RequestVote</b>. Necesita mayoría para ganar.');
+Q('raft', 'ra15', '¿Cuántos nodos caídos tolera un clúster Raft de <b>3 nodos</b>?',
+  ['1', '0', '2', '3'],
+  'Quórum = ⌊3/2⌋ + 1 = 2. Con 1 caído quedan 2, que alcanzan; con 2 caídos queda 1, que no. Regla: con N = 2f + 1 nodos se toleran <b>f</b> fallas.');
+Q('raft', 'ra16', 'Clúster de 5 nodos con uno caído: dos candidatos del mismo term reciben 2 votos cada uno. ¿Qué pasa?',
+  ['Split vote: nueva elección con term mayor', 'Gana el candidato con el ID más alto del clúster', 'Ambos son líderes hasta que uno de ellos se caiga', 'Gana el que haya enviado RequestVote primero'],
+  'Es un <b>split vote</b>: ninguno llega a 3. Los candidatos esperan un timeout <b>aleatorio</b> y uno se postula de nuevo con <b>term + 1</b>, normalmente antes que el otro.');
+Q('raft', 'ra17', 'Un candidato pide el voto a un nodo cuyo log es <b>más actualizado</b> que el del candidato. ¿Qué hace ese nodo?',
+  ['Niega el voto: el líder debe tener todo lo ya confirmado', 'Vota igual, porque aún no votó en ese term', 'Vota y además le envía su log para que lo copie', 'Se convierte él mismo en líder sin elección'],
+  'Regla de seguridad: solo se vota por un candidato cuyo log esté <b>al menos tan actualizado</b> como el propio. Así un nodo atrasado no puede ganar y borrar entradas ya confirmadas.');
+Q('raft', 'ra18', 'En un clúster de 5, el líder replicó una entrada en <b>2 followers</b>. ¿Está committed?',
+  ['Sí: con el propio líder son 3 de 5, que es mayoría', 'No: necesita que la tengan los 4 followers', 'No: necesita 3 followers además del líder', 'Solo si el cliente ya recibió la respuesta'],
+  'La entrada está en el líder + 2 followers = <b>3 de 5</b>, que es mayoría. El líder la cuenta como committed y avisa del nuevo commit index en el siguiente AppendEntries.');
+Q('raft', 'ra19', '¿Qué relación debe haber entre el intervalo de heartbeat y el election timeout?',
+  ['El heartbeat debe ser mucho más frecuente que el timeout', 'Deben ser iguales para que el sistema esté sincronizado', 'El timeout debe ser más corto que el heartbeat', 'No hay relación: son configuraciones independientes'],
+  'Si los heartbeats llegan menos seguido que el timeout, los followers iniciarían elecciones con un líder sano. Por eso el heartbeat va, por ejemplo, cada 50 ms, y el timeout es de 150–300 ms.');
+Q('raft', 'ra20', 'El líder viejo, aislado en la minoría, recibe una escritura de un cliente. ¿Qué pasa con ella?',
+  ['La agrega a su log, pero nunca la confirma ni responde OK', 'La confirma, porque él sigue siendo el líder', 'La reenvía al nuevo líder, que la confirma', 'La rechaza de inmediato, porque sabe que está aislado'],
+  'El líder viejo <b>no sabe</b> que fue reemplazado: agrega la entrada, pero nunca juntará mayoría para confirmarla. El cliente no recibe confirmación, y al volver la red esa entrada se sobrescribe.');
+Q('raft', 'ra21', 'Un follower recibe un AppendEntries cuyo <code>prev_log_index</code>/<code>prev_log_term</code> no coincide con su log. ¿Qué pasa?',
+  ['Lo rechaza; el líder reintenta con un índice anterior', 'Lo acepta igual y agrega la entrada al final de su log', 'Se postula como candidato por tener un log distinto', 'Le envía su propio log al líder para que se corrija'],
+  'Es la verificación de <b>Log Matching</b>: el follower solo agrega si su log coincide hasta ese punto. Si no, rechaza; el líder retrocede hasta encontrar dónde coinciden y desde ahí el follower <b>sobrescribe</b> lo que difiere.');
+
+/* ---- Consistencia ---- */
+Q('consistencia', 'co14', 'Durante una partición, un sistema bancario rechaza transferencias en el lado minoritario. ¿Qué eligió según CAP?',
+  ['Consistencia (CP)', 'Disponibilidad (AP)', 'Tolerancia a particiones sola', 'Ninguna, porque rechazó operaciones'],
+  'Rechazar operaciones para no tener saldos distintos en cada lado es elegir <b>consistencia</b> sobre disponibilidad: es un sistema <b>CP</b>.');
+Q('consistencia', 'co15', 'Durante una partición, un carrito de compras sigue aceptando productos en ambos lados y los une al volver la red. ¿Qué eligió?',
+  ['Disponibilidad (AP)', 'Consistencia (CP)', 'Linearizabilidad', 'Replicación síncrona'],
+  'Seguir aceptando operaciones y <b>reconciliar después</b> es elegir <b>disponibilidad</b>: un sistema <b>AP</b> con consistencia eventual.');
+Q('consistencia', 'co16', 'P1 escribe x = 1 y después y = 1. P2 lee y = 1 y después lee x = 0. ¿Viola la consistencia secuencial?',
+  ['Sí: si vio y = 1, debió ver x = 1, que P1 escribió antes', 'No: la secuencial no exige ningún orden entre procesos', 'No: solo la linearizabilidad prohíbe este resultado', 'Sí, pero solo si las operaciones fueron en paralelo'],
+  'La secuencial exige un orden global que respete el <b>orden de programa</b> de cada proceso. En P1, x = 1 va antes que y = 1. Si P2 ve y = 1, en ese orden global x = 1 ya ocurrió, así que no puede leer x = 0.');
+Q('consistencia', 'co17', '¿Qué modelo se comporta como si hubiera <b>una sola copia</b> del dato, respetando el tiempo real?',
+  ['Linearizabilidad', 'Consistencia secuencial', 'Read-your-writes', 'Consistencia eventual'],
+  'La <b>linearizabilidad</b> da la ilusión de una sola copia: cada operación tiene efecto en un instante entre su inicio y su fin, y el orden respeta el reloj real.');
+Q('consistencia', 'co18', '¿Cuál es una forma simple de garantizar <b>read-your-writes</b> con varias réplicas?',
+  ['Leer de la réplica donde el usuario escribió', 'Usar replicación asíncrona con más réplicas', 'Leer siempre de la réplica más cercana al usuario', 'Configurar los quórums con W = 1 y R = 1'],
+  'Si el usuario lee de la <b>misma réplica</b> donde escribió (o del primario), siempre verá su propia escritura. Otra opción es usar quórums con W + R > N.');
+Q('consistencia', 'co19', 'Con N = 5, ¿qué configuración tolera 2 réplicas caídas tanto al leer como al escribir, y además lee lo último?',
+  ['W = 3, R = 3', 'W = 5, R = 1', 'W = 1, R = 5', 'W = 2, R = 2'],
+  'W = 3 y R = 3: 3 + 3 = 6 > 5 ✓, y con 2 caídas quedan 3 réplicas, suficientes para ambas. W = 5 no tolera ninguna caída al escribir; W = 2, R = 2 suma 4 y no garantiza leer lo último.');
+Q('consistencia', 'co20', 'Con replicación síncrona a 3 réplicas, una de ellas se vuelve muy lenta. ¿Qué efecto tiene?',
+  ['Todas las escrituras se vuelven lentas, porque se espera a esa réplica', 'Solo las lecturas de esa réplica se vuelven lentas', 'Nada: la replicación síncrona no espera a las réplicas', 'Esa réplica se descarta y las escrituras siguen rápidas'],
+  'Síncrona = confirmar recién cuando las réplicas aplicaron el cambio. Cada escritura tarda lo que tarde la <b>réplica más lenta</b>: es el costo de la consistencia fuerte.');
+
+/* ---- Colas ---- */
+Q('colas', 'cq25', 'Con entrega <b>at-least-once</b> y un consumidor <b>idempotente</b>, ¿qué se logra en la práctica?',
+  ['El mismo efecto que exactly-once: los duplicados no cambian nada', 'Que el broker deje de reenviar mensajes duplicados', 'Que se pierdan mensajes, como en at-most-once', 'Orden global de todos los mensajes del sistema'],
+  'At-least-once no pierde mensajes y puede duplicar. Si procesar un duplicado no cambia nada (idempotencia), el resultado es <b>como si cada mensaje se procesara una vez</b>.');
+Q('colas', 'cq26', 'Con ACK manual, el consumidor procesa un pedido y <b>se cae antes de enviar el ACK</b>. ¿Qué pasará?',
+  ['Se reentrega, y el pedido podría procesarse dos veces', 'Se pierde, porque el broker ya lo había entregado antes', 'No se reenvía, porque el broker sabe que se procesó', 'Pasa directo a la dead letter queue para revisarlo'],
+  'El broker nunca recibió la confirmación, así que lo <b>reentrega</b>. Como el procesamiento sí ocurrió, se produce un <b>duplicado</b>: hay que deduplicar o ser idempotente.');
+Q('colas', 'cq27', 'Un topic tiene 3 particiones y los eventos se envían con el ID del usuario como key. ¿Qué orden se garantiza?',
+  ['Los eventos de un mismo usuario llegan en orden', 'Todos los eventos del topic llegan en orden', 'Ningún orden, ni siquiera por usuario', 'El orden de cada partición entre todos los usuarios'],
+  'Misma key → misma partición → <b>orden FIFO</b> para ese usuario. Entre usuarios distintos (posiblemente en otras particiones) no hay garantía.');
+Q('colas', 'cq28', 'Los eventos "A" (key = 1) y "B" (key = 2) se envían en ese orden. ¿Se procesarán en ese orden?',
+  ['No necesariamente: pueden ir a particiones distintas', 'Sí, porque Kafka respeta el orden de envío', 'Sí, si el consumidor usa ACK manual', 'No, Kafka siempre los invierte'],
+  'Con keys distintas pueden caer en <b>particiones distintas</b>, y entre particiones no hay orden garantizado. Si importa su orden relativo, deben compartir key.');
+Q('colas', 'cq29', 'Un topic tiene <b>6 particiones</b> y un consumer group tiene <b>3 consumidores</b>. ¿Cómo se reparten?',
+  ['2 particiones por consumidor', '6 particiones para cada consumidor', '1 partición por consumidor y 3 sin asignar', 'Todas al primero y los otros 2 de respaldo'],
+  'Cada partición la procesa un solo miembro del grupo, y se reparten entre todos: 6 / 3 = <b>2 por consumidor</b>.');
+Q('colas', 'cq30', 'Dos consumer groups <b>distintos</b> están suscritos al mismo topic. ¿Qué recibe cada grupo?',
+  ['Cada grupo recibe todos los mensajes del topic', 'Los mensajes se reparten entre los dos grupos', 'Solo el grupo que se suscribió primero recibe', 'Cada grupo recibe solo las particiones pares'],
+  'El reparto de particiones ocurre <b>dentro</b> de un grupo. Grupos distintos son independientes: cada uno recibe <b>todos</b> los mensajes. Así funciona pub-sub en Kafka.');
+Q('colas', 'cq31', '¿Por qué no se reintenta para siempre un mensaje que falla siempre?',
+  ['Porque bloquearía la cola; tras N intentos va a la DLQ', 'Porque el broker borra los mensajes tras un minuto', 'Porque cada reintento duplica el mensaje en la cola', 'Porque el productor deja de enviar mientras se reintenta'],
+  'Un mensaje "venenoso" (mal formado, con un bug) fallaría <b>siempre</b> y frenaría al resto. Tras N intentos se mueve a la <b>dead letter queue</b> para revisarlo, y el flujo sigue.');
+Q('colas', 'cq32', 'El productor genera 1000 mensajes/s, el consumidor procesa 200/s y la cola crece sin parar. ¿Qué mecanismo lo resuelve?',
+  ['Back-pressure: avisar al productor que reduzca su tasa', 'Auto-ack, para que el consumidor confirme más rápido', 'Una dead letter queue para los mensajes que sobran', 'At-most-once, para descartar los mensajes lentos'],
+  'Con <b>back-pressure</b>, el consumidor o el broker señalizan al productor que <b>baje el ritmo</b>, antes de que la cola agote la memoria o se pierdan mensajes. (Otra opción es agregar consumidores).');
+Q('colas', 'cq33', 'En request-reply sobre un broker, ¿cómo sabe el solicitante qué respuesta corresponde a cada solicitud?',
+  ['Cada solicitud lleva un ID de correlación que la respuesta repite', 'El broker entrega las respuestas en el mismo orden', 'El solicitante espera la respuesta antes de enviar otra', 'Cada respuesta va a una cola distinta por mensaje'],
+  'Como solicitud y respuesta viajan desacopladas, se usa un <b>correlation ID</b>: el solicitante lo pone en la solicitud y el que responde lo copia en la respuesta.');
+Q('colas', 'cq34', '¿En qué caso es aceptable usar <b>at-most-once</b>?',
+  ['Métricas de CPU, donde perder una muestra no importa', 'Pagos con tarjeta de crédito, que no pueden perderse', 'Pedidos de compra que deben procesarse todos sin falta', 'Transferencias de dinero entre cuentas bancarias'],
+  'At-most-once puede <b>perder</b> mensajes. Es aceptable cuando un dato suelto no importa, como telemetría frecuente. Para pagos o pedidos se necesita at-least-once o exactly-once.');
+
+/* ---- Relojes ---- */
+Q('relojes', 're08', 'P1 (L = 0) hace un evento local y luego envía m a P2. P2 (L = 0) hace un evento local y luego recibe m. ¿Qué timestamp tiene la recepción en P2?',
+  ['3', '2', '1', '4'],
+  'P1: local → 1, envío → <b>2</b> (m lleva 2). P2: local → 1, recepción → max(1, 2) + 1 = <b>3</b>.');
+Q('relojes', 're09', 'P3 tiene <b>[0, 0, 1]</b> y recibe un mensaje de P1 con <b>[2, 0, 0]</b>. ¿Qué vector queda en P3?',
+  ['[2, 0, 2]', '[2, 0, 1]', '[3, 0, 1]', '[2, 1, 2]'],
+  'Máximo componente a componente: [2, 0, 1]. Luego P3 incrementa <b>su</b> componente (la tercera): <b>[2, 0, 2]</b>.');
+Q('relojes', 're10', 'V(a) = [1, 0, 0] y V(b) = [0, 1, 0]. Con Lamport, ambos podrían tener L = 1. ¿Qué muestra esto?',
+  ['Son concurrentes, y Lamport no puede detectarlo', 'a ocurrió antes que b, como indica el vector', 'Son el mismo evento, porque L es igual', 'b ocurrió antes, porque tiene la segunda componente'],
+  'Ningún vector es ≤ al otro: son <b>concurrentes</b>. Con Lamport podrían tener el mismo número (o cualquier par), sin poder decir nada. Por eso existen los vectores.');
+
+/* ---- Almacenamiento ---- */
+Q('almacen', 'al10', 'Con sharding por <b>hash</b> del ID, ¿qué pasa con la consulta "usuarios con edad entre 20 y 30"?',
+  ['Hay que preguntar a todos los shards', 'Basta con preguntar a un solo shard', 'No se puede responder con sharding', 'Se responde con el shard del primer usuario'],
+  'El hash reparte los datos sin relación con la edad. Los usuarios de 20 a 30 años pueden estar en <b>cualquier shard</b>, así que hay que consultarlos todos y juntar los resultados.');
+Q('almacen', 'al11', '¿Por qué el WAL se escribe de forma <b>secuencial</b>?',
+  ['Porque agregar al final del archivo es muy rápido', 'Porque así los datos quedan cifrados en el disco', 'Porque así nunca hace falta hacer replay tras un crash', 'Porque así solo un proceso a la vez puede leerlo'],
+  'Agregar al <b>final</b> de un archivo es mucho más rápido que modificar en distintos lugares del disco. La operación queda segura rápido y la estructura principal se actualiza después.');
+Q('almacen', 'al12', 'En Chord con <b>1024 nodos</b>, ¿cuántos saltos toma aproximadamente encontrar una clave?',
+  ['Unos 10', 'Unos 1024', 'Unos 512', 'Siempre 1'],
+  'La finger table permite búsquedas en <b>O(log N)</b>: log₂(1024) = <b>10</b> saltos. Sin fingers, siguiendo solo al sucesor, serían hasta 1023.');
+Q('almacen', 'al13', '¿Cuándo actúa el <b>read repair</b>?',
+  ['Durante una lectura que detecta réplicas desactualizadas', 'Cada noche, en un proceso de mantenimiento', 'Cuando un nodo se cae y vuelve a la red', 'Antes de cada escritura, para validar las réplicas'],
+  'Ocurre <b>al leer</b>: la lectura consulta varias réplicas, y si alguna devuelve una versión vieja, el coordinador le envía la nueva. Las lecturas reparan los datos de paso.');
+Q('almacen', 'al14', 'Con event sourcing, ¿cómo se obtiene el saldo actual de una cuenta?',
+  ['Reproduciendo sus eventos, a veces desde un snapshot', 'Leyendo el campo saldo, que se sobrescribe en cada cambio', 'Consultando solo el último evento guardado de la cuenta', 'Pidiéndolo a la réplica más actualizada del clúster'],
+  'El estado actual <b>no se guarda</b>: se calcula reproduciendo los eventos (depósitos, retiros…). Para no reproducir millones cada vez, se guardan <b>snapshots</b> periódicos y se reproducen solo los eventos posteriores.');
+
+/* ---- Patrones ---- */
+Q('patrones', 'pa09', 'Una Saga tiene los pasos 1, 2 y 3. El paso 3 falla. ¿Qué compensaciones se ejecutan?',
+  ['Las de los pasos 2 y 1, en ese orden', 'Las de los pasos 1, 2 y 3', 'Solo la del paso 3', 'Ninguna: se reintenta el paso 3'],
+  'El paso 3 no se completó, así que no hay nada que deshacer ahí. Se compensan los pasos ya confirmados, en <b>orden inverso</b>: primero el 2, después el 1.');
+Q('patrones', 'pa10', 'En 2PC, un participante vota <b>No</b> en la fase de PREPARE. ¿Qué hace el coordinador?',
+  ['Envía ABORT a todos los participantes', 'Envía COMMIT a los que votaron Sí', 'Vuelve a preguntar hasta que todos digan Sí', 'Confirma igual, porque la mayoría votó Sí'],
+  '2PC exige <b>unanimidad</b>: basta un No (o un silencio) para que el coordinador envíe <b>ABORT</b> a todos. Así la transacción ocurre en todos o en ninguno.');
+Q('patrones', 'pa11', 'Con gossip en un clúster de <b>1000 nodos</b>, ¿en cuántas rondas aproximadamente llega la información a todos?',
+  ['Unas 10', 'Unas 1000', 'Unas 500', 'Siempre 1'],
+  'Gossip converge en <b>O(log N)</b> rondas: cada ronda, aproximadamente se duplica la cantidad de nodos que saben. log₂(1000) ≈ <b>10</b>.');
+Q('patrones', 'pa12', '¿Qué desventaja tiene un ID autoincremental central frente a UUID v4 en un sistema distribuido?',
+  ['Necesita un coordinador central: cuello de botella y punto de falla', 'Produce colisiones frecuentes cuando varios nodos generan IDs', 'Ocupa más espacio en disco que un UUID de 128 bits', 'Impide ordenar los registros según su fecha de creación'],
+  'Un contador central obliga a <b>pedir cada ID</b> a un solo lugar: cuello de botella y punto único de falla. Con UUID v4, cada nodo genera IDs <b>sin coordinarse</b>.');

@@ -67,7 +67,8 @@ function alPractica() {
 /* ---- simulacro ---- */
 function alArmarSim() {
   const cfg = alCfg(), banco = alBanco(), usadas = new Set(), ids = [];
-  cfg.secciones.forEach(s => { alMezcla(banco.filter(q => q.sec === s.id)).slice(0, s.peso).forEach(q => { ids.push(q.id); usadas.add(q.id); }); });
+  const st = alStats(), vista = q => (st[q.id] ? 1 : 0);   /* primero las que nunca has respondido */
+  cfg.secciones.forEach(s => { alMezcla(banco.filter(q => q.sec === s.id)).sort((x, y) => vista(x) - vista(y)).slice(0, s.peso).forEach(q => { ids.push(q.id); usadas.add(q.id); }); });
   alMezcla(banco.filter(q => !usadas.has(q.id) && (cfg.secciones.find(s => s.id === q.sec) || {}).peso > 0)).slice(0, Math.max(0, cfg.preguntas - ids.length)).forEach(q => ids.push(q.id));
   const lista = alMezcla(ids).slice(0, cfg.preguntas);
   return { ids: lista, ord: lista.map(id => alOrden(alBanco().find(q => q.id === id))), resp: {}, t0: Date.now(), i: 0, fin: false };
