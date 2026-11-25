@@ -1509,7 +1509,7 @@ function alInicio() {
   <div class="grid g2">
     <div class="card stack"><span class="eyebrow">Simulacro</span><h3 style="margin:0">${cfg.preguntas} preguntas · ${cfg.minutos} min</h3>
       <p class="muted small" style="margin:0">Como el examen: sin explicaciones hasta el final. Al terminar ves tu nota estimada, el resultado por tema y cada pregunta que fallaste.</p>
-      <div class="row">${sim && !sim.fin ? '<button class="btn primary" data-act="alSimSeguir">Continuar simulacro</button><button class="btn" data-act="alSimNuevo">Empezar otro</button>' : '<button class="btn primary" data-act="alSimNuevo">Empezar simulacro</button>'}${sim && sim.fin ? '<button class="btn" data-act="alSimVer">Ver el último resultado</button>' : ''}</div></div>
+      <div class="row">${sim && !sim.fin ? '<button class="btn primary" data-act="alSimSeguir">Continuar simulacro (en pausa)</button><button class="btn" data-act="alSimNuevo">Empezar otro</button>' : '<button class="btn primary" data-act="alSimNuevo">Empezar simulacro</button>'}${sim && sim.fin ? '<button class="btn" data-act="alSimVer">Ver el último resultado</button>' : ''}</div></div>
     <div class="card stack"><span class="eyebrow">Repaso</span><h3 style="margin:0">Preguntas falladas</h3>
       <p class="muted small" style="margin:0">Las que respondiste mal la última vez, en práctica o en simulacro. Salen de la lista cuando las aciertas.</p>
       <div class="row"><button class="btn ${fall ? 'primary' : ''}" data-act="alPracticar" data-v="__fall" ${fall ? '' : 'disabled'}>Repasar ${fall} falladas</button><button class="btn" data-act="alPracticar" data-v="__todo">Práctica mezclada</button></div></div>
@@ -1544,8 +1544,9 @@ function alArmarSim() {
   return { ids: lista, ord: lista.map(id => alOrden(alBanco().find(q => q.id === id))), resp: {}, t0: Date.now(), i: 0, fin: false };
 }
 const alQ = id => alBanco().find(q => q.id === id);
-const alRestante = () => alCfg().minutos * 60000 - (Date.now() - P.alSim.t0);
-function alTick() { const el = $('#al-reloj'); if (!el || !P.alSim || P.alSim.fin) { alParar(); return; } const r = alRestante(); el.textContent = r > 0 ? fmtT(r) : '00:00'; el.classList.toggle('over', r < 10 * 60000); if (r <= 0) ACT.alSimTerminar(); }
+/* tiempo usado = ahora (o el inicio de la pausa) − inicio − lo que estuvo en pausa */
+const alRestante = () => { const S = P.alSim; return alCfg().minutos * 60000 - ((S.pausaDesde || Date.now()) - S.t0 - (S.pausado || 0)); };
+function alTick() { const el = $('#al-reloj'); if (!el || !P.alSim || P.alSim.fin) { alParar(); return; } const r = alRestante(); el.textContent = r > 0 ? fmtT(r) : '00:00'; el.classList.toggle('over', r < 10 * 60000); if (r <= 0 && !P.alSim.pausaDesde) ACT.alSimTerminar(); }
 function alParar() { if (AL.iv) { clearInterval(AL.iv); AL.iv = null; } }
 
 function alSimulacro() {
@@ -1553,12 +1554,15 @@ function alSimulacro() {
   if (S.fin) return alResultado();
   const q = alQ(S.ids[S.i]), n = S.ids.length, resp = Object.keys(S.resp).length;
   setTimeout(() => { if (!AL.iv) AL.iv = setInterval(alTick, 1000); alTick(); }, 0);
+  if (S.pausaDesde) return `<div class="stack al-wrap"><div class="row spread"><span class="eyebrow">Simulacro en pausa · ${resp} de ${n} respondidas</span><span class="al-reloj" id="al-reloj">--:--</span></div>
+  <div class="card stack" style="text-align:center;padding:40px 20px"><h2 style="margin:0">⏸ Simulacro en pausa</h2><p class="muted" style="margin:0">El reloj está detenido y la pregunta, oculta. Te quedan los minutos que ves arriba.</p>
+  <div class="row" style="justify-content:center"><button class="btn primary" data-act="alSimPausa">▶ Reanudar</button><button class="btn" data-act="alSalir">Salir</button></div></div></div>`;
   return `<div class="stack al-wrap"><div class="row spread"><span class="eyebrow">Simulacro · ${resp} de ${n} respondidas</span><span class="al-reloj" id="al-reloj">--:--</span></div>
   ${alPreguntaHtml(q, S.ord[S.i], S.resp[S.i], false, S.i + 1, n)}
   <div class="row spread"><button class="btn" data-act="alSimIr" data-v="${S.i - 1}" ${S.i ? '' : 'disabled'}>← Anterior</button>
   ${S.i < n - 1 ? `<button class="btn primary" data-act="alSimIr" data-v="${S.i + 1}">Siguiente →</button>` : '<button class="btn primary" data-act="alSimTerminar">Terminar y ver resultado</button>'}</div>
   <div class="al-mapa">${S.ids.map((_, k) => `<button class="${k === S.i ? 'act' : ''} ${S.resp[k] != null ? 'resp' : ''}" data-act="alSimIr" data-v="${k}" title="Pregunta ${k + 1}">${k + 1}</button>`).join('')}</div>
-  <div class="row"><button class="btn sm" data-act="alSalir">Pausar y salir</button><button class="btn sm" data-act="alSimTerminar">Terminar ahora</button></div></div>`;
+  <div class="row"><button class="btn sm" data-act="alSimPausa">⏸ Pausar</button><button class="btn sm" data-act="alSalir">Pausar y salir</button><button class="btn sm" data-act="alSimTerminar">Terminar ahora</button></div></div>`;
 }
 
 function alResultado() {
@@ -1589,7 +1593,16 @@ function alRegistrar(q, ok) {
 }
 
 Object.assign(ACT, {
-  alSalir() { AL.modo = null; alParar(); render(); window.scrollTo(0, 0); },
+  alSalir() {
+    const S = P.alSim; if (AL.modo === 'sim' && S && !S.fin && !S.pausaDesde) { S.pausaDesde = Date.now(); save(); }   /* salir pausa el reloj */
+    AL.modo = null; alParar(); render(); window.scrollTo(0, 0);
+  },
+  alSimPausa() {
+    const S = P.alSim; if (!S || S.fin) return;
+    if (S.pausaDesde) { S.pausado = (S.pausado || 0) + (Date.now() - S.pausaDesde); S.pausaDesde = null; }
+    else S.pausaDesde = Date.now();
+    save(); render();
+  },
   alPracticar(el) {
     const v = el.dataset.v, st = alStats();
     let qs = v === '__fall' ? alFalladas() : v === '__todo' ? alBanco() : alBanco().filter(q => q.sec === v);
