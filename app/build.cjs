@@ -125,11 +125,19 @@ function cargarCurso(dir) {
     (examen.secciones || []).forEach(x => { if (!x.id || !x.titulo || typeof x.peso !== 'number') fallo(id, `preguntas.js: la sección ${x.id || '?'} necesita id, titulo y peso`); if (x.teoria && !teIds.has(x.teoria)) fallo(id, `preguntas.js: la sección ${x.id} apunta a la teoría ${x.teoria}, que no existe`); if (x.tema && !temas.has(x.tema)) fallo(id, `preguntas.js: la sección ${x.id} usa el tema ${x.tema}, que no está en curso.temas`); });
     preguntas.forEach(q => {
       const w = `pregunta ${q.id || '?'}`;
-      if (!q.id || !q.sec || !q.q || !q.exp || !Array.isArray(q.ops)) { fallo(id, `${w}: necesita id, sec, q, ops y exp`); return; }
+      if (!q.id || !q.sec || !q.q) { fallo(id, `${w}: necesita id, sec y q`); return; }
       if (pids.has(q.id)) fallo(id, `${w}: id repetido`); pids.add(q.id);
       if (!secIds.has(q.sec)) fallo(id, `${w}: la sección ${q.sec} no existe`);
-      if (q.ops.length < 3 || q.ops.length > 5) fallo(id, `${w}: debe tener entre 3 y 5 alternativas`);
-      if (new Set(q.ops).size !== q.ops.length) fallo(id, `${w}: hay alternativas repetidas`);
+      const tipo = q.tipo || 'alt';
+      if (tipo === 'dev') {
+        if (!q.modelo || !Array.isArray(q.claves) || q.claves.length < 2) fallo(id, `${w}: una de desarrollo necesita modelo y al menos 2 claves`);
+      } else if (tipo === 'vf') {
+        if (!q.exp || !Array.isArray(q.ops) || q.ops.length !== 2 || !q.ops.includes('Verdadero') || !q.ops.includes('Falso')) fallo(id, `${w}: una de V/F necesita exp y ops con 'Verdadero' y 'Falso' (la correcta primero)`);
+      } else if (tipo === 'alt') {
+        if (!q.exp || !Array.isArray(q.ops)) { fallo(id, `${w}: necesita ops y exp`); return; }
+        if (q.ops.length < 3 || q.ops.length > 5) fallo(id, `${w}: debe tener entre 3 y 5 alternativas`);
+        if (new Set(q.ops).size !== q.ops.length) fallo(id, `${w}: hay alternativas repetidas`);
+      } else fallo(id, `${w}: tipo desconocido "${tipo}" (usa alt, vf o dev)`);
     });
   }
   const modulos = ls(path.join(base, 'modulos')).map(f => `/* ---- ${dir}/modulos/${path.basename(f)} ---- */\n` + fs.readFileSync(f, 'utf8')).join('\n');

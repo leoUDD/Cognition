@@ -66,11 +66,12 @@ function renderHeader() {
   const lv = lvlOf(S.xp), lo = 40 * (lv - 1) ** 2, hi = 40 * lv ** 2, pct = Math.round(100 * (S.xp - lo) / (hi - lo));
   const t = today(); const dayXp = S.dayKey === t ? S.dayXp : 0;
   const streakOn = S.lastDay === t || S.lastDay === addDays(t, -1);
-  $('#top').innerHTML = `<div class="top-in"><div class="brand">Cognition<small>${CURSOS.length > 1 ? `<select id="cursosel" data-chg="curso" aria-label="Ramo">${CURSOS.map(c => `<option value="${c.id}" ${c.id === CUR.id ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select>` : esc(CUR.nombre)}</small></div>
+  const enInicio = cur === 'inicio';
+  $('#top').innerHTML = `<div class="top-in"><div class="brand">${CURSOS.length > 1 ? '<a href="#inicio" class="brand-link" title="Elegir ramo">Cognition</a>' : 'Cognition'}<small>${enInicio ? 'Elige un ramo' : CURSOS.length > 1 ? `${esc(CUR.nombre)} · <a href="#inicio" id="cursosel">cambiar ramo</a>` : esc(CUR.nombre)}</small></div>
   <div class="stats"><div class="lvl"><b>Nivel ${lv}</b>${TITLES[Math.min(5, lv - 1)]}</div>
   <div><div class="xpbar" title="${S.xp} XP"><i style="width:${pct}%"></i></div><div class="small muted">${S.xp} XP · hoy ${dayXp}/${DAILY}</div></div>
   <span class="streak" title="Días seguidos estudiando">${streakOn ? S.streak : 0} d seguidos</span><span id="syncchip" class="syncchip ${SY.status === 'ok' ? 'ok' : SY.status === 'offline' || SY.status === 'noserver' ? 'err' : ''}" title="Estado de sincronización">${SYNC_LABEL[SY.status]}</span></div></div>
-  <nav class="tabs" aria-label="Secciones">${tabsCurso()
+  <nav class="tabs" aria-label="Secciones">${enInicio ? '' : tabsCurso()
       .map(([k, n]) => `<a href="#${k}" class="${cur === k ? 'on' : ''}">${n}${k === 'tarjetas' && cardsDueCount() ? `<span class="badge">${cardsDueCount()}</span>` : ''}</a>`).join('')}</nav>`;
 }
 function tabsCurso() {
@@ -103,7 +104,28 @@ function render() {
   } else if (ultimaVista && cur === 'ejercicios') window.scrollTo(0, 0);
   ultimaVista = vista;
 }
-function route() { let h = (location.hash || '#hoy').slice(1); if (h === 'papel') h = 'ejercicios'; const next = tabsCurso().some(x => x[0] === h) && VIEWS[h] ? h : 'hoy'; if (next !== cur) { stopTimer(); window.scrollTo(0, 0); } cur = next; render(); }
+function route() { let h = (location.hash || (CURSOS.length > 1 ? '#inicio' : '#hoy')).slice(1); if (h === 'papel') h = 'ejercicios'; const next = h === 'inicio' && CURSOS.length > 1 ? 'inicio' : tabsCurso().some(x => x[0] === h) && VIEWS[h] ? h : 'hoy'; if (next !== cur) { stopTimer(); window.scrollTo(0, 0); } cur = next; render(); }
+
+/* ===== INICIO: un ramo por tarjeta ===== */
+VIEWS.inicio = () => {
+  const tarjeta = c => {
+    const pc = S.cursos[c.id] || {}, ex = Object.entries(pc.exams || {}).map(([k, v]) => ({ k, v, d: v ? daysTo(v) : null })).filter(x => x.d !== null && x.d >= 0).sort((a, b) => a.d - b.d)[0];
+    const lbl = ex ? ((c.examenes || []).find(e => e.key === ex.k) || { label: ex.k }).label : null;
+    const temas = c.temas || [], vals = temas.map(t => { const a = (pc.topics || {})[t.id]; return a && a.length ? a.reduce((x, y) => x + y, 0) / a.length : null; }).filter(v => v !== null);
+    const dom = vals.length ? Math.round(100 * vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+    const partes = [(c.ejercicios || []).length && `${c.ejercicios.length} ejercicios`, (c.teoria || []).length && `${c.teoria.length} temas de teoría`, (c.preguntas || []).length && `${c.preguntas.length} preguntas`, (c.tarjetas || []).length && `${c.tarjetas.length} tarjetas`].filter(Boolean);
+    return `<button class="card curso-card ${c.id === CUR.id ? 'actual' : ''}" data-act="irCurso" data-id="${c.id}">
+      <div class="row spread"><span class="eyebrow">${c.id === CUR.id ? 'Último que abriste' : 'Ramo'}</span>${ex ? `<span class="chip ${ex.d <= 3 ? 'bad' : ex.d <= 7 ? 'warn' : ''}">${esc(lbl)}: ${ex.d === 0 ? 'hoy' : 'en ' + ex.d + ' d'}</span>` : ''}</div>
+      <h2 style="margin:0">${esc(c.nombre)}</h2>
+      ${c.intro ? `<p class="muted small" style="margin:0">${c.intro}</p>` : ''}
+      <p class="small" style="margin:0">${partes.join(' · ')}</p>
+      ${dom !== null ? `<div class="dom" style="margin:0"><span class="small">Dominio</span><div class="bar"><i class="${dom >= 75 ? 'hi' : dom >= 45 ? 'mid' : 'lo'}" style="width:${dom}%"></i></div><span class="small muted">${dom}%</span></div>` : ''}
+      <span class="btn primary" style="align-self:flex-start">Entrar</span></button>`;
+  };
+  return `<div class="stack"><section class="hero"><div class="eyebrow">Cognition</div><h1>¿Qué vas a <span>estudiar hoy?</span></h1>
+  <p class="muted" style="max-width:62ch">Cada ramo guarda su propio progreso. Tu nivel, tu XP y tu racha son los mismos para todos.</p></section>
+  <div class="grid g2">${CURSOS.map(tarjeta).join('')}</div></div>`;
+};
 
 /* ===== HOY ===== */
 function suggestEx() {
@@ -125,6 +147,8 @@ VIEWS.hoy = () => {
     ${d === null ? '<span class="muted small">pon la fecha</span>' : d < 0 ? '<span class="chip">ya pasó</span>' : `<span class="chip ${d <= 3 ? 'bad' : d <= 7 ? 'warn' : ''}">${d === 0 ? 'es hoy' : 'faltan ' + d + ' d'}</span>`}</div></div>`;
   };
   const pasos = [];
+  if (CUR.examen) pasos.push(`<div class="card"><span class="eyebrow">Examen</span><h3 style="margin:.2em 0">${esc(CUR.examen.titulo)}</h3><div class="muted small">${CUR.examen.preguntas} preguntas en ${CUR.examen.minutos} min. Practica por sección o rinde un simulacro.</div><a class="btn primary" href="#alternativas" style="text-align:center;text-decoration:none">Practicar preguntas</a></div>`);
+  if ((CUR.teoria || []).length) pasos.push(`<div class="card"><span class="eyebrow">Teoría</span><h3 style="margin:.2em 0">${CUR.teoria.length} temas</h3><div class="muted small">Cada tema explicado por partes, con ejemplos y errores típicos.</div><a class="btn primary" href="#teoria" style="text-align:center;text-decoration:none">Leer la teoría</a></div>`);
   if (CARDS.length) pasos.push(`<div class="card"><span class="eyebrow">Tarjetas</span><div class="big">${n}</div><div class="muted">por repasar hoy</div><a class="btn primary" href="#tarjetas" style="text-align:center;text-decoration:none">Repasar teoría</a></div>`);
   if (sg) pasos.push(`<div class="card"><span class="eyebrow">Ejercicio</span><h3 style="margin:.2em 0">${esc(sg.ex.n)} · ${esc(sg.ex.title)}</h3><div class="muted small">${esc(sg.why)}</div><button class="btn primary" data-act="openEx" data-id="${sg.ex.id}">Hacer este ejercicio</button></div>`);
   (CUR.modulos || []).forEach(m => { const h = MODULOS[m] && MODULOS[m].hoy; if (h) pasos.push(`<div class="card"><span class="eyebrow">${esc(MODULOS[m].nombre)}</span><h3 style="margin:.2em 0">${esc(h.titulo)}</h3><div class="muted small">${esc(h.texto)}</div><a class="btn primary" href="#${m}" style="text-align:center;text-decoration:none">${esc(h.boton)}</a></div>`); });
@@ -368,6 +392,7 @@ document.addEventListener('input', e => {
   if (t.id === 'myans') CV.mia = t.value;
   if (t.id === 'sycode') SY.pendingCode = t.value.trim().toLowerCase();
 });
+ACT.irCurso = el => { stopTimer(); activarCurso(el.dataset.id); EJ.sel = null; CV.on = false; CV.filter = 'all'; if (typeof TE !== 'undefined') { TE.tema = null; TE.sub = null; } if (typeof AL !== 'undefined') AL.modo = null; save(); location.hash = '#hoy'; window.scrollTo(0, 0); };
 function cambiarCurso(id) {
   stopTimer(); activarCurso(id); EJ.sel = null; CV.on = false; CV.filter = 'all'; save();
   if (location.hash && location.hash !== '#hoy') location.hash = '#hoy'; else render();
